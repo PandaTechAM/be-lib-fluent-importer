@@ -1,30 +1,59 @@
-name: Deploy NuGet Package
+name: Build and Publish NuGet Package
 
 on:
   push:
     branches:
-      - main
+      - development
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dotnet-version: ['7.x.x']
+  build:
+    runs-on: self-hosted
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: ${{ matrix.dotnet-version }}
+      - uses: actions/checkout@v2
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '7.0.x'
+          include-prerelease: false
+
+      - name: Remove old NuGet sources
+        run: |
+          dotnet nuget remove source pandatech
+        #  dotnet nuget remove source nuget.org
+        continue-on-error: true
+
+      - name: Add NuGet source
+        run: |
+          dotnet nuget add source https://hubrepopanda.easypay.am/repository/nuget-hosted/index.json -n pandatech --username ${{ secrets.nexus_username }} --password ${{ secrets.nexus_password }} --store-password-in-clear-text
+        continue-on-error: true
+
+     # - name: Add nuget source
+     #   run: |
+     #     dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org 
+     #   continue-on-error: true
         
-    - name: Build
-      run: dotnet build ./PandaFileImporter
-      
-    - name: Build
-      run: dotnet pack ./PandaFileImporter --output nupkgs
-            
-    - name: Publish
-      run: dotnet nuget push ./nupkgs/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+      - name: Restore
+        run: |
+          dotnet restore --verbosity normal --no-cache --force --disable-parallel
+
+      - name: Build
+        run: |
+          dotnet build --no-restore --verbosity normal --configuration Release
+
+      - name: Pack NuGet package
+        run: dotnet pack ./PandaFileImporter/PandaFileImporter.csproj --no-build --configuration Release  -o ./dist
+
+      - name: Push NuGet package to Nexus
+        run: |
+          ls ./dist
+          PACKAGE_FILE=$(ls ./dist/*.nupkg | head -n 1)
+          echo "Pushing NuGet package: $PACKAGE_FILE"
+          dotnet nuget push "$PACKAGE_FILE" -s https://hubrepopanda.easypay.am/repository/nuget-hosted/index.json --skip-duplicate
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
