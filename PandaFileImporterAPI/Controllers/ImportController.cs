@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using NPOI.SS.Formula.Functions;
 using PandaFileImporter;
 using PandaTech.ServiceResponse;
 
@@ -17,9 +16,9 @@ namespace PandaFileImporterAPI.Controllers
         }
 
         [HttpPost("get-bytes")]
-        public ServiceResponse<byte[]> GetFileBytes(IFormFile file)
+        public ServiceResponse<FileBytesDto> GetFileBytes(IFormFile file)
         {
-            var response = new ServiceResponse<byte[]>();
+            var response = new ServiceResponse<FileBytesDto>();
             try
             {
                 response.ResponseData.Data = _fileImporter.GetFileBytes(file);
@@ -38,9 +37,9 @@ namespace PandaFileImporterAPI.Controllers
             var response = new ServiceResponse<IEnumerable<FileData>>();
             try
             {
-                if(Path.GetExtension(file.FileName) != ".xlsx")
+                if (Path.GetExtension(file.FileName) != ".xlsx")
                 {
-                    response.Message = "Not supported file extenstion!";
+                    response.Message = "Not supported file extension!";
                     response.ResponseStatus = ServiceResponseStatus.BadRequest;
                 }
 
@@ -52,6 +51,12 @@ namespace PandaFileImporterAPI.Controllers
             }
 
             return SetResponse(response);
+        }
+
+        [HttpPost("download-file-from-bytes")]
+        public IActionResult DownloadFile([FromBody] FileBytesDto file)
+        {
+            return File(file.FileContent, _fileImporter.GetExtensionMimeType(file.FileExtension), file.FileName + file.FileExtension);
         }
     }
 }

@@ -64,10 +64,10 @@ namespace PandaFileImporterTests
             byte[] filebytes = Encoding.UTF8.GetBytes("dummy data");
             IFormFile file = new FormFile(new MemoryStream(filebytes), 0, filebytes.Length, "Data", "import.xlsx");
 
-            var bytes = _fileImporter.GetFileBytes(file);
+            var bytesDto = _fileImporter.GetFileBytes(file);
 
-            Assert.Equal(filebytes.Length, bytes.Length);
-            Assert.True(filebytes.SequenceEqual(bytes));
+            Assert.Equal(filebytes.Length, bytesDto.FileContent.Length);
+            Assert.True(filebytes.SequenceEqual(bytesDto.FileContent));
         }
 
         [Fact]
