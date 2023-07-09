@@ -8,13 +8,6 @@ namespace PandaFileImporterTests
 {
     public class ServiceTests
     {
-        private readonly FileImporter _fileImporter;
-
-        public ServiceTests()
-        {
-            _fileImporter = new FileImporter();
-        }
-
         private List<FileData> GetDataList()
         {
             var list = new List<FileData>();
@@ -64,7 +57,7 @@ namespace PandaFileImporterTests
             byte[] filebytes = Encoding.UTF8.GetBytes("dummy data");
             IFormFile file = new FormFile(new MemoryStream(filebytes), 0, filebytes.Length, "Data", "import.xlsx");
 
-            var bytesDto = _fileImporter.GetFileBytes(file);
+            var bytesDto = FileImporter.GetFileBytes(file);
 
             Assert.Equal(filebytes.Length, bytesDto.FileContent.Length);
             Assert.True(filebytes.SequenceEqual(bytesDto.FileContent));
@@ -75,7 +68,7 @@ namespace PandaFileImporterTests
         {
             var xlsxFile = GenerateFormFile("FileData.xlsx");
 
-            var xlsxResult = _fileImporter.GetData<FileData>(xlsxFile);
+            var xlsxResult = FileImporter.GetData<FileData>(xlsxFile);
 
             Assert.True(xlsxResult.Count() != 0);
             Assert.Equal(typeof(FileData), xlsxResult.First().GetType());

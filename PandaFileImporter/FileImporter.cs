@@ -1,14 +1,13 @@
 ﻿using ClosedXML.Excel;
-using DocumentFormat.OpenXml;
 using Ganss.Excel;
 using Microsoft.AspNetCore.Http;
 using System.Reflection;
 
 namespace PandaFileImporter
 {
-    public class FileImporter
+    public static class FileImporter
     {
-        public FileBytesDto GetFileBytes(IFormFile file)
+        public static FileBytesDto GetFileBytes(IFormFile file)
         {
             using (var memoryStream = new MemoryStream())
             {
@@ -27,7 +26,7 @@ namespace PandaFileImporter
             }
         }
 
-        public IEnumerable<T> GetData<T>(IFormFile file)
+        public static IEnumerable<T> GetData<T>(IFormFile file)
         {
             var extension = Path.GetExtension(file.FileName);
 
@@ -65,7 +64,7 @@ namespace PandaFileImporter
             }
         }
 
-        public IFormFile SaveAsXlsx(IFormFile file)
+        public static IFormFile SaveAsXlsx(IFormFile file)
         {
             using (var memoryStream = new MemoryStream())
             {
@@ -108,7 +107,7 @@ namespace PandaFileImporter
             }
         }
 
-        public string GetExtensionMimeType(string fileExtension)
+        public static string GetExtensionMimeType(string fileExtension)
         {
             if (fileExtension.Substring(0, 1) == ".")
                 fileExtension = fileExtension.ToUpper().Substring(1, fileExtension.Length - 1);
