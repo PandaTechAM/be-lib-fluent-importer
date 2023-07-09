@@ -8,11 +8,8 @@ namespace PandaFileImporterAPI.Controllers
     [Route("api/v1")]
     public class ImportController : ExtendedController
     {
-        public readonly FileImporter _fileImporter;
-
-        public ImportController(FileImporter fileImporeter, IExceptionHandler exceptionHandler) : base(exceptionHandler)
+        public ImportController(IExceptionHandler exceptionHandler) : base(exceptionHandler)
         {
-            _fileImporter = fileImporeter;
         }
 
         [HttpPost("get-bytes")]
@@ -21,7 +18,7 @@ namespace PandaFileImporterAPI.Controllers
             var response = new ServiceResponse<FileBytesDto>();
             try
             {
-                response.ResponseData.Data = _fileImporter.GetFileBytes(file);
+                response.ResponseData.Data = FileImporter.GetFileBytes(file);
             }
             catch (Exception e)
             {
@@ -43,7 +40,7 @@ namespace PandaFileImporterAPI.Controllers
                     response.ResponseStatus = ServiceResponseStatus.BadRequest;
                 }
 
-                response.ResponseData.Data = _fileImporter.GetData<FileData>(file);
+                response.ResponseData.Data = FileImporter.GetData<FileData>(file);
             }
             catch (Exception e)
             {
@@ -56,7 +53,7 @@ namespace PandaFileImporterAPI.Controllers
         [HttpPost("download-file-from-bytes")]
         public IActionResult DownloadFile([FromBody] FileBytesDto file)
         {
-            return File(file.FileContent, _fileImporter.GetExtensionMimeType(file.FileExtension), file.FileName + file.FileExtension);
+            return File(file.FileContent, FileImporter.GetExtensionMimeType(file.FileExtension), file.FileName + file.FileExtension);
         }
     }
 }

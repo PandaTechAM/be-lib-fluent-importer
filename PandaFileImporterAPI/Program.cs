@@ -12,8 +12,6 @@ else
     builder.Services.AddSingleton<IExceptionHandler, PublicExceptionHandler>();
 }
 
-builder.Services.AddSingleton<FileImporter>();
-
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
