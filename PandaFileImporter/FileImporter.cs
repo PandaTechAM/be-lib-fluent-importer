@@ -85,7 +85,7 @@ namespace PandaFileImporter
                         {
                             //string line = (await reader.ReadLineAsync())!;
                             string line = reader.ReadLine()!;
-                            string[] values = line!.Split(',');
+                            string[] values = line.Split(',');
 
                             for (int col = 1; col <= values.Length; col++)
                             {
@@ -102,7 +102,7 @@ namespace PandaFileImporter
                     excelStream.Position = 0;
 
                     // Return new IFormFile in XLSX format as the response
-                    return new PandaFormFile(excelStream, "import.xlsx", MimeTypes.XLSX.ToString());
+                    return new PandaFormFile(excelStream, "import.xlsx", MimeTypes.XLSX);
                 }
             }
         }

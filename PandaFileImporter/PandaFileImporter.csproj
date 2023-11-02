@@ -7,7 +7,7 @@
 		<PackageId>PandaTech.FileImporter</PackageId>
 		<Authors>PandaTech</Authors>
 		<Company></Company>
-		<Version>0.0.4</Version>
+		<Version>0.0.5</Version>
 		<Title>Impoert data into database via excel</Title>
 		<Description>Impoert data into database via excel</Description>
 		<PackageIcon>Logo.jpg</PackageIcon>
