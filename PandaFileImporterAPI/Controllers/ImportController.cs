@@ -1,59 +1,91 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PandaFileImporter;
+using PandaFileImporterAPI;
 using PandaTech.ServiceResponse;
+
+class MyContext(DbContextOptions<MyContext> options) : DbContext(options)
+{
+    public DbSet<FileData> Data { get; set; } = null!;
+}
 
 namespace PandaFileImporterAPI.Controllers
 {
     [ApiController]
     [Route("api/v1")]
-    public class ImportController : ExtendedController
+    public class ImportController : ControllerBase
     {
-        public ImportController(IExceptionHandler exceptionHandler) : base(exceptionHandler)
+        MyContext _context;
+
+        public ImportController(IExceptionHandler exceptionHandler)
         {
+            var options = new DbContextOptionsBuilder<MyContext>()
+                .UseInMemoryDatabase(databaseName: "MyContext")
+                .Options;
+
+            _context = new MyContext(options);
+            _context.Database.EnsureCreated();
         }
 
-        [HttpPost("get-bytes")]
-        public ServiceResponse<FileBytesDto> GetFileBytes(IFormFile file)
+        [HttpPost("import-file-data-dictionary")]
+        public async Task<IActionResult> ImportFileData()
         {
-            var response = new ServiceResponse<FileBytesDto>();
-            try
+            var data = new List<Dictionary<string, string>>()
             {
-                response.ResponseData.Data = FileImporter.GetFileBytes(file);
-            }
-            catch (Exception e)
-            {
-                response = ExceptionHandler.Handle(response, e);
-            }
-
-            return SetResponse(response);
-        }
-
-        [HttpPost("import-file")]
-        public ServiceResponse<IEnumerable<FileData>> ImportFile(IFormFile file)
-        {
-            var response = new ServiceResponse<IEnumerable<FileData>>();
-            try
-            {
-                if (Path.GetExtension(file.FileName) != ".xlsx")
+                new Dictionary<string, string>()
                 {
-                    response.Message = "Not supported file extension!";
-                    response.ResponseStatus = ServiceResponseStatus.BadRequest;
+                    { "Id", "1" },
+                    { "Name", "Name1" },
+                    { "Description", "Description1" },
+                    { "Date", "2021-01-01" },
+                    { "Comment", "Comment1" }
+                },
+                new Dictionary<string, string>()
+                {
+                    { "Id", "3" },
+                    { "Name", "Name1" },
+                    { "Description", "Description1" },
+                    { "Date", "2021-01-01" },
+                    { "Comment", "Comment1" }
+                },
+                new Dictionary<string, string>()
+                {
+                    { "Id", "d4" },
+                    { "Name", "Name1" },
+                    { "Description", "Description1" },
+                    { "Date", "2021-01-01" },
+                    { "Comment", "Comment1" }
                 }
+            };
 
-                response.ResponseData.Data = FileImporter.GetData<FileData>(file);
-            }
-            catch (Exception e)
-            {
-                response = ExceptionHandler.Handle(response, e);
-            }
-
-            return SetResponse(response);
+            var rule = new FileDataImportRule();
+            await rule.ImportAsync(_context, data);
+            return Ok(_context.Data.ToListAsync());
         }
 
-        [HttpPost("download-file-from-bytes")]
-        public IActionResult DownloadFile([FromBody] FileBytesDto file)
+        [HttpPost("import-file-data-xlsx")]
+        public async Task<IActionResult> GetFileBytes(IFormFile file)
         {
-            return File(file.FileContent, FileImporter.GetExtensionMimeType(file.FileExtension), file.FileName + file.FileExtension);
+            var rule = new FileDataImportRule2();
+
+            byte[] bytes;
+            var stream = file.OpenReadStream();
+            using (var memoryStream = new MemoryStream())
+            {
+                await stream.CopyToAsync(memoryStream);
+                bytes = memoryStream.ToArray();
+            }
+
+            await rule.ImportFromExcelAsync(_context, bytes);
+            return Ok(_context.Data.ToListAsync());
+        }
+
+        [HttpPost("import-file-data-csv")]
+        public async Task<IActionResult> GetFileBytes(string file)
+        {
+            var rule = new FileDataImportRule();
+            await rule.ImportFromCsvAsync(_context, file);
+            return Ok(_context.Data.ToListAsync());
         }
     }
 }

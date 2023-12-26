@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net7.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<PackageId>PandaTech.FileImporter</PackageId>
@@ -34,10 +34,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="ClosedXML" Version="0.101.0" />
-	  <PackageReference Include="ExcelMapper" Version="5.2.483" />
+	  <PackageReference Include="ClosedXML" Version="0.102.1" />
+	  <PackageReference Include="ExcelMapper" Version="5.2.564" />
 	  <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.8" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
 	</ItemGroup>
 
 </Project>
