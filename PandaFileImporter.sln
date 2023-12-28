@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pandatech.FileImporter", "src\Pandatech.FileImporter\Pandatech.FileImporter.csproj", "{E61CC4FA-9EE0-42FE-8A71-CD5C1FA651E7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pandatech.FileImporter", "src\PandaTech.FileImporter\PandaTech.FileImporter.csproj", "{E61CC4FA-9EE0-42FE-8A71-CD5C1FA651E7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pandatech.Tests", "src\Pandatech.Tests\Pandatech.Tests.csproj", "{5506EF5E-411C-487F-8E67-23611945D3CD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pandatech.Tests", "src\PandaTech.Tests\PandaTech.Tests.csproj", "{5506EF5E-411C-487F-8E67-23611945D3CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pandatech.TestApi", "src\Pandatech.TestApi\Pandatech.TestApi.csproj", "{8329961F-D142-48DE-82E6-21C6EDBBC556}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pandatech.TestApi", "src\PandaTech.TestApi\PandaTech.TestApi.csproj", "{8329961F-D142-48DE-82E6-21C6EDBBC556}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
