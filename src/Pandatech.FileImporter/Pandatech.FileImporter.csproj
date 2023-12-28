@@ -6,28 +6,28 @@
 		<Nullable>enable</Nullable>
 		<PackageId>PandaTech.FileImporter</PackageId>
 		<Authors>PandaTech</Authors>
-		<Company></Company>
-		<Version>0.0.5</Version>
+		<Company>PandaTech</Company>
+		<Version>1.0.0</Version>
 		<Title>Impoert data into database via excel</Title>
 		<Description>Impoert data into database via excel</Description>
 		<PackageIcon>Logo.jpg</PackageIcon>
-		<PackageProjectUrl></PackageProjectUrl>
 		<RepositoryUrl>https://github.com/PandaTechAM/be-lib-file-importer</RepositoryUrl>
 		<RepositoryType>lib</RepositoryType>
-		<PackageTags>lib, import</PackageTags>
+		<PackageTags>Pandatech, lib, import</PackageTags>
+		<Copyright>MIT</Copyright>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Content Include="..\.gitignore">
+		<Content Include="..\..\.gitignore">
 			<Link>.gitignore</Link>
 		</Content>
-		<Content Include="..\README.md">
+		<Content Include="..\..\README.md">
 			<Link>README.md</Link>
 		</Content>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Include="..\Logo.jpg">
+	  <None Include="..\..\Logo.jpg">
 	    <Pack>True</Pack>
 	    <PackagePath>\</PackagePath>
 	  </None>

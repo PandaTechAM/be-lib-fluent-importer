@@ -1,54 +1,125 @@
 ﻿using System.Linq.Expressions;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Microsoft.EntityFrameworkCore;
 
-namespace PandaFileImporter;
+namespace Pandatech.FileImporter;
 
 public class ImportRule<TModel> where TModel : class
 {
-    public class PropertyRule<TModel, TProperty> : IInterface
+    public class PropertyRule<TProperty> : IInterface
     {
-        string _propertyName;
-        private string _columnName = "";
+        private enum ConverterType
+        {
+            None,
+            Converter,
+            ConverterWithInstance
+        }
+
+        private enum ReadFromType
+        {
+            None,
+            Column,
+            Value,
+            Function
+        }
+
+        readonly string _propertyName;
+        private string _columnName;
         Func<string, TProperty> _converter = x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
+
+        Func<string, TModel, TProperty> _converterWithInstance =
+            (x, y) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
+
+
+        private ConverterType _converterType = ConverterType.None;
+        private ReadFromType _readFromType = ReadFromType.None;
 
         public PropertyRule(MemberExpression navigationPropertyPath)
         {
             _propertyName = navigationPropertyPath.Member.Name ?? throw new ArgumentException("Invalid property name");
+            _columnName = _propertyName;
         }
 
-        public PropertyRule<TModel, TProperty> ReadFromColumn(string name)
+        public PropertyRule<TProperty> ReadFromColumn(string name)
         {
             _columnName = name;
+            _readFromType = ReadFromType.Column;
             return this;
         }
 
-        public PropertyRule<TModel, TProperty> Convert(Func<string, TProperty> func)
+        public PropertyRule<TProperty> Convert(Func<string, TProperty> func)
         {
             _converter = func;
+            _converterType = ConverterType.Converter;
+            return this;
+        }
+
+        public PropertyRule<TProperty> Convert(Func<string, TModel, TProperty> func)
+        {
+            _converterWithInstance = func;
+            _converterType = ConverterType.ConverterWithInstance;
             return this;
         }
         
-        public TProperty GetValue(string value)
+        public TProperty GetValue(string value, TModel model)
         {
-            return _converter(value);
+            string innerValue;
+            switch (_readFromType)
+            {
+                case ReadFromType.None:
+                case ReadFromType.Column:
+                    innerValue = value;
+                    break;
+                case ReadFromType.Value:
+                    return readValue;
+                case ReadFromType.Function:
+                    return _readFromModel.Invoke(model);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            return _converterType switch
+            {
+                ConverterType.None => (TProperty)System.Convert.ChangeType(innerValue, typeof(TProperty)),
+                ConverterType.Converter => _converter(innerValue),
+                ConverterType.ConverterWithInstance => _converterWithInstance(innerValue, model),
+                _ => throw new ArgumentOutOfRangeException()
+            };
         }
 
         public string PropertyName()
         {
             return _propertyName;
         }
-        
+
         public string ColumnName()
         {
             return _columnName;
         }
+
+        private TProperty readValue;
+
+        public void ReadFromValue(TProperty value)
+        {
+            _readFromType = ReadFromType.Value;
+            readValue = value;
+        }
+
+        Func<TModel, TProperty> _readFromModel;
+
+        public void ReadFromModel(Func<TModel, TProperty> func)
+        {
+            _readFromType = ReadFromType.Function;
+            _readFromModel = func;
+        }
     }
 
-    public PropertyRule<TModel, TProperty> RuleFor<TProperty>(
+    public PropertyRule<TProperty> RuleFor<TProperty>(
         Expression<Func<TModel, TProperty>> navigationPropertyPath)
     {
-        var rule = new PropertyRule<TModel, TProperty>(navigationPropertyPath.Body as MemberExpression ?? throw new ArgumentException("Invalid property name"));
+        var rule = new PropertyRule<TProperty>(navigationPropertyPath.Body as MemberExpression ??
+                                               throw new ArgumentException("Invalid property name"));
 
         _rules.Add(rule);
 
@@ -59,7 +130,6 @@ public class ImportRule<TModel> where TModel : class
 
     private interface IInterface
     {
-
         public string PropertyName();
         string ColumnName();
     };
@@ -72,10 +142,10 @@ public class ImportRule<TModel> where TModel : class
         {
             await ImportLine(dataRow, dbSet);
         }
-        
+
         await context.SaveChangesAsync();
     }
-    
+
     public async Task ImportFromCsvAsync(DbContext context, string csv)
     {
         var dbSet = context.Set<TModel>();
@@ -91,22 +161,24 @@ public class ImportRule<TModel> where TModel : class
             {
                 dict.Add(headers[i], Unescape(dataRow[i]));
             }
+
             await ImportLine(dict, dbSet);
         }
-        
+
         await context.SaveChangesAsync();
     }
-    
+
     public async Task ImportFromExcelAsync(DbContext context, byte[] excel)
     {
         var dbSet = context.Set<TModel>();
 
         var stream = new MemoryStream(excel);
-        
-        var data = new XLWorkbook(stream).Worksheets.First().Rows().Select(x => x.Cells().Select(y => y.Value.ToString()).ToArray()).ToList();
+
+        var data = new XLWorkbook(stream).Worksheets.First().Rows()
+            .Select(x => x.Cells().Select(y => y.Value.ToString()).ToArray()).ToList();
 
         stream.Close();
-        
+
         var headers = data[0];
 
         foreach (var dataRow in data.Skip(1))
@@ -116,12 +188,13 @@ public class ImportRule<TModel> where TModel : class
             {
                 dict.Add(headers[i], dataRow[i]);
             }
+
             await ImportLine(dict, dbSet);
         }
-        
+
         await context.SaveChangesAsync();
     }
-    
+
     private static string Unescape(string value)
     {
         if (value.StartsWith("\"") && value.EndsWith("\""))
@@ -134,11 +207,11 @@ public class ImportRule<TModel> where TModel : class
         return value;
     }
 
-    
+
     private async Task ImportLine(Dictionary<string, string> dataRow, DbSet<TModel> dbSet)
     {
         var model = Activator.CreateInstance<TModel>();
-            
+
         foreach (var rule in _rules)
         {
             var property = typeof(TModel).GetProperty(rule.PropertyName());
@@ -146,13 +219,13 @@ public class ImportRule<TModel> where TModel : class
             {
                 throw new ArgumentException("Invalid property name");
             }
-                
+
             var value = dataRow[rule.ColumnName()];
-                
+
             var convertMethod = rule.GetType().GetMethod("GetValue");
-                
-            var convertedValue = convertMethod?.Invoke(rule, new object[] {value});
-                
+
+            var convertedValue = convertMethod?.Invoke(rule, [value, model]);
+
             property.SetValue(model, convertedValue);
         }
 

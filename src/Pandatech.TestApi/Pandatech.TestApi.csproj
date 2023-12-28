@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PandaFileImporter\PandaFileImporter.csproj" />
+    <ProjectReference Include="..\Pandatech.FileImporter\Pandatech.FileImporter.csproj" />
   </ItemGroup>
 
 </Project>

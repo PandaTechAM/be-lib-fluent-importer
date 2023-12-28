@@ -1,4 +1,4 @@
-﻿namespace PandaFileImporterTests
+﻿namespace Pandatech.Tests
 {
     public static class StreamTypeChecker
     {
