@@ -1,4 +1,4 @@
-# Panda File Importer Library
+# PandaTech.FileImporter Library
 
 This library provides a robust and flexible way to import data from Excel files into a database. It is built in C# and uses the Entity Framework for database operations.
 
@@ -18,7 +18,7 @@ This library provides a robust and flexible way to import data from Excel files 
 
 ### Installation
 
-Add a reference to the `PandaFileImporter` project in your solution.
+Add a reference to the `PandaTechFileImporter` project in your solution.
 
 ### Usage
 
@@ -49,8 +49,8 @@ public class FileDataImportRule: ImportRule<FileData>
         RuleFor(x => x.Date).ReadFromColumn("Date").Convert(DateTime.Parse);
         RuleFor(x => x.Comment).ReadFromColumn("Comment");
         RuleFor(x => x.Id).ReadFromColumn("Id").Convert(s => BaseConverter.PandaBaseConverter.Base36ToBase10(s)!.Value);
-        RuleFor(x => x.CreatedAt).ReadFromValue(DateTime.UtcNow);
-        RuleFor(x => x.CreatedBy).ReadFromValue("System");
+        RuleFor(x => x.CreatedAt).WriteValue(DateTime.UtcNow);
+        RuleFor(x => x.CreatedBy).WriteValue("System");
         RuleFor(x => x.CreatedBy).ReadFromModel(x => x.CreatedBy + " - 1");
     }
 }
@@ -58,7 +58,7 @@ public class FileDataImportRule: ImportRule<FileData>
 
  - In RuleFor, you can specify the property of your model, that you want to import.
  - Use the `ReadFromColumn` method to specify the column name in the Excel file, that contains the data for the property.
- - Use the `ReadFromValue` method to specify a constant value for the property.
+ - Use the `WriteValue` method to specify a constant value for the property.
  - Use the `ReadFromModel` method to specify a function, that will be called to get the value for the property.The function takes the model as an argument.
 > If you do not specify any `ReadFrom` method, the library will try to find a column with the same name as the property in the data.
  - Use the `Convert` method to specify a conversion function for the data. This function will be applied to the data before it is assigned to the property. 
