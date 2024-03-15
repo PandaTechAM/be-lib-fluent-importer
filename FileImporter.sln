@@ -5,9 +5,15 @@ VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileImporter", "src\FileImporter\FileImporter.csproj", "{E61CC4FA-9EE0-42FE-8A71-CD5C1FA651E7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileImporter.Tests", "src\FileImporter.Tests\FileImporter.Tests.csproj", "{5506EF5E-411C-487F-8E67-23611945D3CD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileImporter.Tests", "test\FileImporter.Tests\FileImporter.Tests.csproj", "{5506EF5E-411C-487F-8E67-23611945D3CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileImporter.Demo", "src\FileImporter.Demo\FileImporter.Demo.csproj", "{8329961F-D142-48DE-82E6-21C6EDBBC556}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileImporter.Demo", "test\FileImporter.Demo\FileImporter.Demo.csproj", "{8329961F-D142-48DE-82E6-21C6EDBBC556}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BA061CE1-14C4-45B8-88BC-D455870F1183}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{3845B591-62DC-4908-A1E6-4A2AF3270BE2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BC4181C4-5B0E-43BB-A04A-6A7DBFDC8C13}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,5 +41,8 @@ Global
 		SolutionGuid = {9C05DD70-CE37-49BE-BB12-9FB1BE3C6355}
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{E61CC4FA-9EE0-42FE-8A71-CD5C1FA651E7} = {BA061CE1-14C4-45B8-88BC-D455870F1183}
+		{8329961F-D142-48DE-82E6-21C6EDBBC556} = {3845B591-62DC-4908-A1E6-4A2AF3270BE2}
+		{5506EF5E-411C-487F-8E67-23611945D3CD} = {3845B591-62DC-4908-A1E6-4A2AF3270BE2}
 	EndGlobalSection
 EndGlobal
