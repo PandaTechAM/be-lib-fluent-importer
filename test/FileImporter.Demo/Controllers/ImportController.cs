@@ -1,24 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FileImporter.Demo.Context;
+using FileImporter.Demo.ImportModels;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace FileImporter.Demo.Controllers;
 
 [ApiController]
 [Route("api/v1")]
-public class ImportController : ControllerBase
+public class ImportController(MyDbContext context) : ControllerBase
 {
-    private readonly MyContext _context;
-
-    public ImportController()
-    {
-        var options = new DbContextOptionsBuilder<MyContext>()
-            .UseInMemoryDatabase(databaseName: "MyContext")
-            .Options;
-
-        _context = new MyContext(options);
-        _context.Database.EnsureCreated();
-    }
-
     [HttpPost("import-file-data-dictionary")]
     public async Task<IActionResult> ImportFileData()
     {
@@ -29,30 +19,33 @@ public class ImportController : ControllerBase
                 { "Id", "1" },
                 { "Name", "Name1" },
                 { "Description", "Description1" },
-                { "Date", "2021-01-01" },
-                { "Comment", "Comment1" }
+                { "Comment", "Comment1" },
+                { "CreatedAt", "2021-01-01" },
+                { "CreatedBy", "System" }
             },
             new()
             {
                 { "Id", "3" },
                 { "Name", "Name1" },
                 { "Description", "Description1" },
-                { "Date", "2021-01-01" },
-                { "Comment", "Comment1" }
+                { "Comment", "Comment1" },
+                { "CreatedAt", "2021-01-01" },
+                { "CreatedBy", "System" }
             },
             new()
             {
                 { "Id", "d4" },
                 { "Name", "Name1" },
                 { "Description", "Description1" },
-                { "Date", "2021-01-01" },
-                { "Comment", "Comment1" }
+                { "Comment", "Comment1" },
+                { "CreatedAt", "2021-01-01" },
+                { "CreatedBy", "System" }
             }
         };
 
         var rule = new FileDataImportRule();
-        await rule.ImportAsync(_context, data);
-        return Ok(_context.Data.ToListAsync());
+        await rule.ImportAsync(context, data);
+        return Ok(context.FileData.ToListAsync());
     }
 
     [HttpPost("import-file-data-xlsx")]
@@ -67,15 +60,15 @@ public class ImportController : ControllerBase
             bytes = memoryStream.ToArray();
         }
 
-        await rule.ImportExcelAsync(_context, bytes);
-        return Ok(_context.Data.ToListAsync());
+        await rule.ImportExcelAsync(context, bytes);
+        return Ok(context.FileData.ToListAsync());
     }
 
     [HttpPost("import-file-data-csv")]
     public async Task<IActionResult> GetFileBytes(string file)
     {
         var rule = new FileDataImportRule();
-        await rule.ImportCsvAsync(_context, file);
-        return Ok(_context.Data.ToListAsync());
+        await rule.ImportCsvAsync(context, file);
+        return Ok(context.FileData.ToListAsync());
     }
 }

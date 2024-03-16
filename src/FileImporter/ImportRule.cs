@@ -19,20 +19,23 @@ public class ImportRule<TModel> where TModel : class
     {
         private readonly string _propertyName;
         private string _columnName;
-
-        private Func<string, TProperty> _converter = x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
-
-        private Func<string, TModel, TProperty> _converterWithInstance =
-            (x, _) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
-
         private ConverterType _converterType = ConverterType.None;
         private ReadFromType _readFromType = ReadFromType.None;
+        private TProperty _readValue = default!;
+        private Func<TModel, TProperty> _readFromModel = null!;
+
 
         public PropertyRule(MemberExpression navigationPropertyPath)
         {
             _propertyName = navigationPropertyPath.Member.Name ?? throw new ArgumentException("Invalid property name");
             _columnName = _propertyName;
         }
+
+        private Func<string, TProperty> _converter = x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
+
+        private Func<string, TModel, TProperty> _converterWithInstance =
+            (x, _) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
+
 
         public PropertyRule<TProperty> ReadFromColumn(string name)
         {
@@ -41,7 +44,7 @@ public class ImportRule<TModel> where TModel : class
             return this;
         }
 
-        public PropertyRule<TProperty> Convert(Func<string, TProperty> func)
+        public PropertyRule<TProperty> Custom(Func<string, TProperty> func)
         {
             _converter = func;
             _converterType = ConverterType.Converter;
@@ -91,7 +94,6 @@ public class ImportRule<TModel> where TModel : class
             return _columnName;
         }
 
-        private TProperty _readValue;
 
         public void WriteValue(TProperty value)
         {
@@ -99,7 +101,6 @@ public class ImportRule<TModel> where TModel : class
             _readValue = value;
         }
 
-        Func<TModel, TProperty> _readFromModel;
 
         public void ReadFromModel(Func<TModel, TProperty> func)
         {
@@ -107,7 +108,7 @@ public class ImportRule<TModel> where TModel : class
             _readFromModel = func;
         }
     }
-    
+
     private readonly List<IPropertyRule> _rules = [];
 
     protected PropertyRule<TProperty> RuleFor<TProperty>(Expression<Func<TModel, TProperty>> navigationPropertyPath)
@@ -119,8 +120,6 @@ public class ImportRule<TModel> where TModel : class
 
         return rule;
     }
-
-    
 
     public async Task ImportAsync(DbContext context, List<Dictionary<string, string>> data)
     {
@@ -186,7 +185,7 @@ public class ImportRule<TModel> where TModel : class
         foreach (var rule in _rules)
         {
             var property = typeof(TModel).GetProperty(rule.PropertyName());
-            
+
             if (property is null)
             {
                 throw new ArgumentException("Invalid property name");

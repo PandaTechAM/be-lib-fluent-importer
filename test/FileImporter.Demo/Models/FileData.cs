@@ -1,5 +1,8 @@
-﻿namespace FileImporter.Demo;
+﻿using Microsoft.EntityFrameworkCore;
 
+namespace FileImporter.Demo.Models;
+
+[PrimaryKey(nameof(Id))]
 public class FileData
 {
     public long Id { get; set; }
@@ -7,8 +10,8 @@ public class FileData
     public string Description { get; set; } = null!;
     public DateTime Date { get; set; }
     public string? Comment { get; set; }
-    
+
     public DateTime CreatedAt { get; set; }
-    
+
     public string CreatedBy { get; set; } = null!;
 }
