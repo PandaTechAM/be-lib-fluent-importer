@@ -1,10 +1,10 @@
-using Carter;
 using FileImporter.Demo.Extensions;
+using FluentMinimalApiMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddDatabase();
-builder.Services.AddCarter();
+builder.AddEndpoints();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -17,7 +17,9 @@ app.CreateDatabase();
 
 app.UseSwagger();
 app.UseSwaggerUI();
-app.MapCarter();
+app.MapEndpoints();
 app.MapControllers();
 
 app.Run();
+
+//todo default value, Not empty, Validation checks, Db context is not needed, review usage
