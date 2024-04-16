@@ -32,16 +32,8 @@ public class ServiceTests
         }
     };
 
-    private readonly MyContext _context;
-
     public ServiceTests()
     {
-        var options = new DbContextOptionsBuilder<MyContext>()
-            .UseInMemoryDatabase(databaseName: "MyContext")
-            .Options;
-
-        _context = new MyContext(options);
-        _context.Database.EnsureCreated();
     }
 
 
@@ -49,8 +41,8 @@ public class ServiceTests
     public async Task Import_Data()
     {
         var rule = new FileDataImportRule();
-        await rule.ImportAsync(_context, data);
+        var records = rule.GetRecords(data);
 
-        Assert.Equal(3, _context.Data.Count());
+        Assert.Equal(3, records.Count());
     }
 }

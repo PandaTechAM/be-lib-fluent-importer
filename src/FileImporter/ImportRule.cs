@@ -4,16 +4,15 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using ClosedXML.Excel;
 using CsvHelper;
 using FileImporter.Enums;
 using FileImporter.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace FileImporter;
 
-public class ImportRule<TModel> where TModel : class
+public class ImportRule<TModel>
+       where TModel : class
 {
     public class PropertyRule<TProperty> : IPropertyRule
     {
@@ -22,8 +21,9 @@ public class ImportRule<TModel> where TModel : class
         private ConverterType _converterType = ConverterType.None;
         private ReadFromType _readFromType = ReadFromType.None;
         private TProperty _readValue = default!;
+        private TProperty _defaultValue = default!;
+        private bool _isValueRequired = false;
         private Func<TModel, TProperty> _readFromModel = null!;
-
 
         public PropertyRule(MemberExpression navigationPropertyPath)
         {
@@ -44,7 +44,7 @@ public class ImportRule<TModel> where TModel : class
             return this;
         }
 
-        public PropertyRule<TProperty> Custom(Func<string, TProperty> func)
+        public PropertyRule<TProperty> Convert(Func<string, TProperty> func)
         {
             _converter = func;
             _converterType = ConverterType.Converter;
@@ -58,42 +58,40 @@ public class ImportRule<TModel> where TModel : class
             return this;
         }
 
-        public TProperty GetValue(string value, TModel model)
+        public TProperty GetValue(string? value, TModel model)
         {
-            string innerValue;
+            if (_isValueRequired && string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException($"Value for column '{_columnName}' is required", value);
+            }
+
+            string? innerValue;
             switch (_readFromType)
             {
                 case ReadFromType.None:
                 case ReadFromType.Column:
-                    innerValue = value;
+                    innerValue = value ?? _defaultValue?.ToString();
                     break;
                 case ReadFromType.Value:
                     return _readValue;
                 case ReadFromType.Function:
-                    return _readFromModel.Invoke(model);
+                    return _readFromModel.Invoke(model) ?? _defaultValue;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
 
             return _converterType switch
             {
-                ConverterType.None => (TProperty)System.Convert.ChangeType(innerValue, typeof(TProperty)),
-                ConverterType.Converter => _converter(innerValue),
-                ConverterType.ConverterWithInstance => _converterWithInstance(innerValue, model),
+                ConverterType.None => (TProperty?)System.Convert.ChangeType(innerValue, typeof(TProperty)) ?? _defaultValue,
+                ConverterType.Converter => _converter(innerValue!) ?? _defaultValue,
+                ConverterType.ConverterWithInstance => _converterWithInstance(innerValue!, model) ?? _defaultValue,
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
 
-        public string PropertyName()
-        {
-            return _propertyName;
-        }
+        public string PropertyName() => _propertyName;
 
-        public string ColumnName()
-        {
-            return _columnName;
-        }
-
+        public string ColumnName() => _columnName;
 
         public void WriteValue(TProperty value)
         {
@@ -101,6 +99,18 @@ public class ImportRule<TModel> where TModel : class
             _readValue = value;
         }
 
+        public PropertyRule<TProperty> Default(TProperty value)
+        {
+            _defaultValue = value;
+            return this;
+        }
+
+        public PropertyRule<TProperty> NotEmpty()
+        {
+            _isValueRequired = true;
+
+            return this;
+        }
 
         public void ReadFromModel(Func<TModel, TProperty> func)
         {
@@ -121,46 +131,39 @@ public class ImportRule<TModel> where TModel : class
         return rule;
     }
 
-    public async Task ImportAsync(DbContext context, List<Dictionary<string, string>> data)
+    public IEnumerable<TModel> GetRecords(IEnumerable<Dictionary<string, string>> data)
     {
-        var dbSet = context.Set<TModel>();
-
         foreach (var dataRow in data)
         {
-            await ImportLine(dataRow, dbSet);
+            yield return GetRecord(dataRow);
         }
-
-        await context.SaveChangesAsync();
     }
 
-    public async Task ImportCsvAsync(DbContext context, string csvFilePath)
+
+    public List<TModel> GetCsvRecords(Stream csvStream)
     {
-        var dbSet = context.Set<TModel>();
-
-        using (var reader = new StreamReader(csvFilePath))
-        using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-        {
-            var records = csv.GetRecords<Dictionary<string, string>>();
-            foreach (var record in records)
-            {
-                await ImportLine(record, dbSet);
-            }
-        }
-
-        await context.SaveChangesAsync();
+        csvStream.Position = 0;
+        using var reader = new StreamReader(csvStream);
+        return GetCsvRecords(reader);
     }
 
-    public async Task ImportExcelAsync(DbContext context, byte[] excel)
+    public List<TModel> GetCsvRecords(string csvFilePath)
     {
-        var dbSet = context.Set<TModel>();
+        using var reader = new StreamReader(csvFilePath);
+        return GetCsvRecords(reader);
+    }
 
-        var stream = new MemoryStream(excel);
+    public List<TModel> GetExcelRecords(Stream stream)
+    {
+        var data = new XLWorkbook(stream).Worksheets
+                                              .First()
+                                              .Rows()
+                                              .Select(x => x.Cells()
+                                                            .Select(y => y.Value.ToString())
+                                                            .ToArray())
+                                              .ToList();
 
-        var data = new XLWorkbook(stream).Worksheets.First().Rows()
-            .Select(x => x.Cells().Select(y => y.Value.ToString()).ToArray()).ToList();
-
-        stream.Close();
-
+        var models = new List<TModel>(data.Count);
         var headers = data[0];
 
         foreach (var dataRow in data.Skip(1))
@@ -168,28 +171,41 @@ public class ImportRule<TModel> where TModel : class
             var dict = new Dictionary<string, string>();
             for (var i = 0; i < headers.Length; i++)
             {
-                dict.Add(headers[i], dataRow[i]);
+                dict.Add(headers[i], i < dataRow.Length ? dataRow[i] : default!);
             }
 
-            await ImportLine(dict, dbSet);
+            models.Add(GetRecord(dict));
         }
 
-        await context.SaveChangesAsync();
+        return models;
+    }
+
+    private List<TModel> GetCsvRecords(StreamReader reader)
+    {
+        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+        var records = csv.GetRecords<object>();
+        var models = new List<TModel>();
+        foreach (var record in records)
+        {
+            var recordMapped = (record as IDictionary<string, object>)!
+                                .ToDictionary(x => x.Key,
+                                              x => (string)x.Value == string.Empty ? null : (string)x.Value)
+                                .AsReadOnly();
+
+            models.Add(GetRecord(recordMapped!));
+        }
+
+        return models;
     }
 
 
-    private async Task ImportLine(IReadOnlyDictionary<string, string> dataRow, DbSet<TModel> dbSet)
+    private TModel GetRecord(IReadOnlyDictionary<string, string> dataRow)
     {
         var model = Activator.CreateInstance<TModel>();
 
         foreach (var rule in _rules)
         {
-            var property = typeof(TModel).GetProperty(rule.PropertyName());
-
-            if (property is null)
-            {
-                throw new ArgumentException("Invalid property name");
-            }
+            var property = typeof(TModel).GetProperty(rule.PropertyName()) ?? throw new ArgumentException("Invalid property name");
 
             var value = dataRow[rule.ColumnName()];
 
@@ -200,6 +216,6 @@ public class ImportRule<TModel> where TModel : class
             property.SetValue(model, convertedValue);
         }
 
-        await dbSet.AddAsync(model);
+        return model;
     }
 }
