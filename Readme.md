@@ -1,26 +1,27 @@
-# Pandatech FileImporter
+# Pandatech FluentImporter
 
-Pandatech FileImporter is a lightweight NuGet package designed to simplify the process of importing CSV and Excel data into .NET 8 or higher applications. With a fluent API, Pandatech FileImporter  allows developers to define custom import rules for each property of their model, making data importing straightforward and flexible.
+The `Pandatech.FluentImporter` is a lightweight NuGet package designed to facilitate the importation of CSV and Excel data
+into .NET 8 or higher applications. Featuring a fluent API, the FluentImporter enables developers to specify custom import
+rules for each model property, making the data import process both straightforward and flexible.
 
 ## Features
 
-- Import CSV and Excel data effortlessly.
+- Effortlessly import CSV and XLSX (excel) data.
 - Define custom import rules using a fluent API.
-- Compatible with .NET 8 or higher versions.
 
 ## Installation
 
 You can install Pandatech FileImporter via NuGet Package Manager or .NET CLI:
 
 ```bash
-dotnet add package PandaTech.FileImporter 
+dotnet add package PandaTech.FluentImporter
 ```
 
 ## Usage
 
 ### Define Model
 
-First, define your model class with properties representing the data fields you want to import. For example:
+First, define a model class with properties that represent the data fields you wish to import. For example:
 
 ```csharp
 public class FileData
@@ -37,7 +38,7 @@ public class FileData
 
 ### Define Import Rules
 
-Next, create an import rule class by inheriting from `ImportRule<TModel>` and define your import rules using the fluent API. For example:
+Next, create a class for import rules by inheriting from `ImportRule<TModel>` and define your rules using the fluent API. For example:
 
 ```csharp
 public class FileDataImportRule : ImportRule<FileData>
@@ -55,36 +56,31 @@ public class FileDataImportRule : ImportRule<FileData>
     }
 }
 ```
-
 ### Import Data
 
-Finally, use one of the provided methods on the import rule instance to import data from CSV, Excel, or in-memory sources.
+Finally, use the methods provided in your import rule instance to import data from CSV, Excel, or in-memory sources.
 
-#### Import from In-Memory Data
-
+Import from In-Memory Data
 ```csharp
 IEnumerable<TModel> GetRecords(IEnumerable<Dictionary<string, string>> data)
 ```
-
-#### Import from CSV
-
-```csharp
-List<TModel> GetCsvRecords(Stream csvStream)
-List<TModel> GetCsvRecords(string csvFilePath)
-```
-
-#### Import from Excel
+Import from CSV
 
 ```csharp
-List<TModel> GetExcelRecords(Stream stream)
+List<TModel> ReadCsv(Stream csvStream)
+List<TModel> ReadCsv(string csvFilePath)
 ```
-
-## Example
+Import from Excel
+```csharp
+List<TModel> ReadXlsx(Stream stream)
+List<TModel> ReadXlsx(string csvFilePath)
+```
+### Example
 
 ```csharp
 var importRule = new FileDataImportRule();
 var csvFilePath = "path/to/your/file.csv";
-var importedData = importRule.GetCsvRecords(csvFilePath);
+var importedData = importRule.ReadCsv(csvFilePath);
 ```
 
 ## Contributing
@@ -93,4 +89,4 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License.

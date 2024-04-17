@@ -11,8 +11,7 @@ using FileImporter.Services.Interfaces;
 
 namespace FileImporter;
 
-public class ImportRule<TModel>
-       where TModel : class
+public class ImportRule<TModel> where TModel : class
 {
     public class PropertyRule<TProperty> : IPropertyRule
     {
@@ -22,7 +21,7 @@ public class ImportRule<TModel>
         private ReadFromType _readFromType = ReadFromType.None;
         private TProperty _readValue = default!;
         private TProperty _defaultValue = default!;
-        private bool _isValueRequired = false;
+        private bool _isValueRequired;
         private Func<TModel, TProperty> _readFromModel = null!;
 
         public PropertyRule(MemberExpression navigationPropertyPath)
@@ -82,7 +81,8 @@ public class ImportRule<TModel>
 
             return _converterType switch
             {
-                ConverterType.None => (TProperty?)System.Convert.ChangeType(innerValue, typeof(TProperty)) ?? _defaultValue,
+                ConverterType.None => (TProperty?)System.Convert.ChangeType(innerValue, typeof(TProperty)) ??
+                                      _defaultValue,
                 ConverterType.Converter => _converter(innerValue!) ?? _defaultValue,
                 ConverterType.ConverterWithInstance => _converterWithInstance(innerValue!, model) ?? _defaultValue,
                 _ => throw new ArgumentOutOfRangeException()
@@ -156,12 +156,12 @@ public class ImportRule<TModel>
     public List<TModel> GetExcelRecords(Stream stream)
     {
         var data = new XLWorkbook(stream).Worksheets
-                                              .First()
-                                              .Rows()
-                                              .Select(x => x.Cells()
-                                                            .Select(y => y.Value.ToString())
-                                                            .ToArray())
-                                              .ToList();
+            .First()
+            .Rows()
+            .Select(x => x.Cells()
+                .Select(y => y.Value.ToString())
+                .ToArray())
+            .ToList();
 
         var models = new List<TModel>(data.Count);
         var headers = data[0];
@@ -188,9 +188,9 @@ public class ImportRule<TModel>
         foreach (var record in records)
         {
             var recordMapped = (record as IDictionary<string, object>)!
-                                .ToDictionary(x => x.Key,
-                                              x => (string)x.Value == string.Empty ? null : (string)x.Value)
-                                .AsReadOnly();
+                .ToDictionary(x => x.Key,
+                    x => (string)x.Value == string.Empty ? null : (string)x.Value)
+                .AsReadOnly();
 
             models.Add(GetRecord(recordMapped!));
         }
@@ -205,7 +205,8 @@ public class ImportRule<TModel>
 
         foreach (var rule in _rules)
         {
-            var property = typeof(TModel).GetProperty(rule.PropertyName()) ?? throw new ArgumentException("Invalid property name");
+            var property = typeof(TModel).GetProperty(rule.PropertyName()) ??
+                           throw new ArgumentException("Invalid property name");
 
             var value = dataRow[rule.ColumnName()];
 
