@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <PackageId>PandaTech.FluentImporter</PackageId>
+        <Authors>PandaTech</Authors>
+        <Copyright>MIT</Copyright>
+        <PackageIcon>Logo.jpg</PackageIcon>
+        <PackageReadmeFile>Readme.md</PackageReadmeFile>
+        <Version>2.0.0</Version>
+        <Company>PandaTech</Company>
+        <Title>Fluent Importer</Title>
+        <PackageTags>Pandatech, libray, import, excel, csv, xlsx, fluent</PackageTags>
+        <Description>Import data from XLSX or CSV</Description>
+        <RepositoryUrl>https://github.com/PandaTechAM/be-lib-fluent-importer</RepositoryUrl>
+        <PackageReleaseNotes>Naming changes and first release candidate</PackageReleaseNotes>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\Logo.jpg" Pack="true" PackagePath="\"/>
+        <None Include="..\..\Readme.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="ClosedXML" Version="0.102.1"/>
+        <PackageReference Include="CsvHelper" Version="30.0.1" />
+    </ItemGroup>
+
+</Project>
