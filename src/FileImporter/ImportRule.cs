@@ -140,20 +140,26 @@ public class ImportRule<TModel> where TModel : class
     }
 
 
-    public List<TModel> GetCsvRecords(Stream csvStream)
+    public List<TModel> ReadCsv(Stream csvStream)
     {
         csvStream.Position = 0;
         using var reader = new StreamReader(csvStream);
-        return GetCsvRecords(reader);
+        return ReadCsv(reader);
     }
 
-    public List<TModel> GetCsvRecords(string csvFilePath)
+    public List<TModel> ReadCsv(string csvFilePath)
     {
         using var reader = new StreamReader(csvFilePath);
-        return GetCsvRecords(reader);
+        return ReadCsv(reader);
     }
 
-    public List<TModel> GetExcelRecords(Stream stream)
+    public List<TModel> ReadXlsx(string xlsxFilePath)
+    {
+        using var stream = File.Open(xlsxFilePath, FileMode.Open);
+        return ReadXlsx(stream);
+    }
+
+    public List<TModel> ReadXlsx(Stream stream)
     {
         var data = new XLWorkbook(stream).Worksheets
             .First()
@@ -180,7 +186,7 @@ public class ImportRule<TModel> where TModel : class
         return models;
     }
 
-    private List<TModel> GetCsvRecords(StreamReader reader)
+    private List<TModel> ReadCsv(StreamReader reader)
     {
         using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
         var records = csv.GetRecords<object>();
