@@ -62,7 +62,17 @@ public class ImportController : ControllerBase
         using var memoryStream = new MemoryStream();
         await file.CopyToAsync(memoryStream);
 
-        var records = rule.GetExcelRecords(memoryStream).ToList();
+        var records = rule.ReadXlsx(memoryStream).ToList();
+
+        return Ok(records);
+    }
+
+    [HttpPost("import-file-data-xlsx-path")]
+    public async Task<IActionResult> ImportExcel(string file)
+    {
+        var rule = new FileDataImportRule2();
+
+        var records = rule.ReadXlsx(file).ToList();
 
         return Ok(records);
     }
@@ -72,7 +82,7 @@ public class ImportController : ControllerBase
     {
         var rule = new FileDataImportRule();
 
-        var records = rule.GetCsvRecords(file);
+        var records = rule.ReadCsv(file);
 
         return Ok(records);
     }
@@ -85,7 +95,7 @@ public class ImportController : ControllerBase
         using var memoryStream = new MemoryStream();
         await file.CopyToAsync(memoryStream);
         
-        var records = rule.GetCsvRecords(memoryStream);
+        var records = rule.ReadCsv(memoryStream);
 
         return Ok(records);
     }
