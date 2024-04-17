@@ -1,4 +1,4 @@
-# Pandatech FileImporter NuGet Package
+# Pandatech FileImporter
 
 Pandatech FileImporter is a lightweight NuGet package designed to simplify the process of importing CSV and Excel data into .NET 8 or higher applications. With a fluent API, Pandatech FileImporter  allows developers to define custom import rules for each property of their model, making data importing straightforward and flexible.
 
