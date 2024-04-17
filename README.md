@@ -13,7 +13,7 @@ Pandatech FileImporter is a lightweight NuGet package designed to simplify the p
 You can install Pandatech FileImporter via NuGet Package Manager or .NET CLI:
 
 ```bash
-dotnet add package Pandatech FileImporter 
+dotnet add package PandaTech.FileImporter 
 ```
 
 ## Usage
