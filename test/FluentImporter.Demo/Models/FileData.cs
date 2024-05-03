@@ -6,6 +6,8 @@ namespace FluentImporter.Demo.Models;
 public class FileData
 {
     public long Id { get; set; }
+    public long? NullableId { get; set; }
+    public decimal? Sqm { get; set; }
     public string Name { get; set; } = null!;
     public string Description { get; set; } = null!;
     public DateTime Date { get; set; }

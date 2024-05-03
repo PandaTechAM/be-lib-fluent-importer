@@ -80,9 +80,14 @@ public class ImportRule<TModel> where TModel : class
                     throw new ArgumentOutOfRangeException(paramName: "", message: "Unknown read from type");
             }
 
+            var type = typeof(TProperty);
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                type = type.GenericTypeArguments.First();
+            }
             return _converterType switch
             {
-                ConverterType.None => (TProperty?)System.Convert.ChangeType(innerValue, typeof(TProperty)) ??
+                ConverterType.None => innerValue == default ? _defaultValue : (TProperty?)System.Convert.ChangeType(innerValue, type) ??
                                       _defaultValue,
                 ConverterType.Converter => _converter(innerValue!) ?? _defaultValue,
                 ConverterType.ConverterWithInstance => _converterWithInstance(innerValue!, model) ?? _defaultValue,

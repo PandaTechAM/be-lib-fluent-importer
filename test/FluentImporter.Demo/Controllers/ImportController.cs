@@ -18,6 +18,8 @@ public class ImportController : ControllerBase
             new()
             {
                 { "Id", "1" },
+                { "Nullable Id", "1" },
+                { "Sqm", "1.25" },
                 { "Name", null },
                 { "Date", null },
                 { "Description", "Description1" },
@@ -28,6 +30,8 @@ public class ImportController : ControllerBase
             new()
             {
                 { "Id", "3" },
+                { "Nullable Id", "2" },
+                { "Sqm", null },
                 { "Name", "Name1" },
                 { "Date", "2025-01-01" },
                 { "Description", "Description1" },
@@ -38,6 +42,8 @@ public class ImportController : ControllerBase
             new()
             {
                 { "Id", "d4" },
+                { "Nullable Id", null },
+                { "Sqm", "999.18" },
                 { "Name", "Name1" },
                 { "Date", null },
                 { "Description", "Description1" },
