@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using ClosedXML.Excel;
 using CsvHelper;
 using FluentImporter.Enums;
+using FluentImporter.Exceptions;
 using FluentImporter.Services.Interfaces;
 
 namespace FluentImporter;
@@ -26,7 +27,7 @@ public class ImportRule<TModel> where TModel : class
 
         public PropertyRule(MemberExpression navigationPropertyPath)
         {
-            _propertyName = navigationPropertyPath.Member.Name ?? throw new ArgumentException("Invalid property name");
+            _propertyName = navigationPropertyPath.Member.Name ?? throw new InvalidPropertyNameException("Invalid property name", _propertyName);
             _columnName = _propertyName;
         }
 
@@ -61,7 +62,7 @@ public class ImportRule<TModel> where TModel : class
         {
             if (_isValueRequired && string.IsNullOrWhiteSpace(value))
             {
-                throw new ArgumentException($"Value for column '{_columnName}' is required", value);
+                throw new InvalidColumnValueException($"Value for column '{_columnName}' is required", value);
             }
 
             string? innerValue;
@@ -76,7 +77,7 @@ public class ImportRule<TModel> where TModel : class
                 case ReadFromType.Function:
                     return _readFromModel.Invoke(model) ?? _defaultValue;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException(paramName: "", message: "Unknown read from type");
             }
 
             return _converterType switch
@@ -85,7 +86,7 @@ public class ImportRule<TModel> where TModel : class
                                       _defaultValue,
                 ConverterType.Converter => _converter(innerValue!) ?? _defaultValue,
                 ConverterType.ConverterWithInstance => _converterWithInstance(innerValue!, model) ?? _defaultValue,
-                _ => throw new ArgumentOutOfRangeException()
+                _ => throw new ArgumentOutOfRangeException(paramName: "", message: "Unknown converter type")
             };
         }
 
@@ -124,7 +125,7 @@ public class ImportRule<TModel> where TModel : class
     protected PropertyRule<TProperty> RuleFor<TProperty>(Expression<Func<TModel, TProperty>> navigationPropertyPath)
     {
         var rule = new PropertyRule<TProperty>(navigationPropertyPath.Body as MemberExpression ??
-                                               throw new ArgumentException("Invalid property name"));
+                                               throw new InvalidPropertyNameException("Invalid property name", ""));
 
         _rules.Add(rule);
 
@@ -212,7 +213,7 @@ public class ImportRule<TModel> where TModel : class
         foreach (var rule in _rules)
         {
             var property = typeof(TModel).GetProperty(rule.PropertyName()) ??
-                           throw new ArgumentException("Invalid property name");
+                           throw new InvalidPropertyNameException("Invalid property name", "");
 
             var value = dataRow[rule.ColumnName()];
 
