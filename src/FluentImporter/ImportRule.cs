@@ -27,7 +27,8 @@ public class ImportRule<TModel> where TModel : class
 
         public PropertyRule(MemberExpression navigationPropertyPath)
         {
-            _propertyName = navigationPropertyPath.Member.Name ?? throw new InvalidPropertyNameException("Invalid property name", _propertyName);
+            _propertyName = navigationPropertyPath.Member.Name ??
+                            throw new InvalidPropertyNameException("Invalid property name", _propertyName);
             _columnName = _propertyName;
         }
 
@@ -85,10 +86,13 @@ public class ImportRule<TModel> where TModel : class
             {
                 type = type.GenericTypeArguments.First();
             }
+
             return _converterType switch
             {
-                ConverterType.None => innerValue == default ? _defaultValue : (TProperty?)System.Convert.ChangeType(innerValue, type) ??
-                                      _defaultValue,
+                ConverterType.None => innerValue == default
+                    ? _defaultValue
+                    : (TProperty?)System.Convert.ChangeType(innerValue, type) ??
+                      _defaultValue,
                 ConverterType.Converter => _converter(innerValue!) ?? _defaultValue,
                 ConverterType.ConverterWithInstance => _converterWithInstance(innerValue!, model) ?? _defaultValue,
                 _ => throw new ArgumentOutOfRangeException(paramName: "", message: "Unknown converter type")
@@ -167,12 +171,22 @@ public class ImportRule<TModel> where TModel : class
 
     public List<TModel> ReadXlsx(Stream stream)
     {
-        var data = new XLWorkbook(stream).Worksheets
-            .First()
-            .Rows()
-            .Select(x => x.Cells()
-                .Select(y => y.Value.ToString())
-                .ToArray())
+        var worksheet = new XLWorkbook(stream).Worksheets.First();
+        var rowCount = worksheet.RowsUsed().Count();
+        var columnCount = worksheet.Rows().Max(row => row.CellsUsed().Count());
+
+        var data = Enumerable.Range(1, rowCount)
+            .Select(rowIndex =>
+            {
+                var row = worksheet.Row(rowIndex);
+                return Enumerable.Range(1, columnCount)
+                    .Select(colIndex =>
+                    {
+                        var cell = row.Cell(colIndex);
+                        return cell.IsEmpty() ? null : cell.Value.ToString();
+                    })
+                    .ToArray();
+            })
             .ToList();
 
         var models = new List<TModel>(data.Count);
