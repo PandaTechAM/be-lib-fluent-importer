@@ -2,9 +2,8 @@ using System;
 
 namespace FluentImporter.Exceptions;
 
-public abstract class ImportException : Exception
+public abstract class ImportException(string message, string? value = null)
+    : Exception(message)
 {
-    protected ImportException(string message, string? value = null) : base(message)
-    {
-    }
+    public string? Value { get; private set; } = value;
 }
