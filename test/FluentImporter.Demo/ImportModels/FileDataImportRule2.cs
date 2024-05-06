@@ -1,6 +1,6 @@
 ﻿using FluentImporter.Demo.Models;
 
-namespace FluentImporter.Demo;
+namespace FluentImporter.Demo.ImportModels;
 
 public class FileDataImportRule2: ImportRule<FileData>
 {

@@ -399,3 +399,6 @@ FodyWeavers.xsd
 
 /PandaFileImporter/MimeTypesFull.cs
 .idea
+/test/FluentImporter.Demo/file_importer.db-shm
+/test/FluentImporter.Demo/file_importer.db-wal
+/test/FluentImporter.Demo/file_importer.db
