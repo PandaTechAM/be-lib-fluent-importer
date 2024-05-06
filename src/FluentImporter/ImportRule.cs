@@ -101,7 +101,7 @@ public class ImportRule<TModel> where TModel : class
 
         public string PropertyName() => _propertyName;
 
-        public string ColumnName() => _columnName;
+        public string ColumnName() => _columnName.ToLower();
 
         public void WriteValue(TProperty value)
         {
@@ -134,7 +134,8 @@ public class ImportRule<TModel> where TModel : class
     protected PropertyRule<TProperty> RuleFor<TProperty>(Expression<Func<TModel, TProperty>> navigationPropertyPath)
     {
         var rule = new PropertyRule<TProperty>(navigationPropertyPath.Body as MemberExpression ??
-                                               throw new InvalidPropertyNameException("Invalid property name", ""));
+                                               throw new InvalidPropertyNameException("Invalid property name",
+                                                   string.Empty));
 
         _rules.Add(rule);
 
@@ -173,7 +174,7 @@ public class ImportRule<TModel> where TModel : class
     {
         var worksheet = new XLWorkbook(stream).Worksheets.First();
         var rowCount = worksheet.RowsUsed().Count();
-        var columnCount = worksheet.Rows().Max(row => row.CellsUsed().Count());
+        var columnCount = rowCount > 0 ? worksheet.Rows().Max(row => row.CellsUsed().Count()) : 0;
 
         var data = Enumerable.Range(1, rowCount)
             .Select(rowIndex =>
@@ -189,15 +190,17 @@ public class ImportRule<TModel> where TModel : class
             })
             .ToList();
 
+        CheckForEmptyFile(data);
+
         var models = new List<TModel>(data.Count);
-        var headers = data[0];
+        var headers = data[0].Select(x => x?.ToLower()).ToArray();
 
         foreach (var dataRow in data.Skip(1))
         {
             var dict = new Dictionary<string, string>();
             for (var i = 0; i < headers.Length; i++)
             {
-                dict.Add(headers[i], i < dataRow.Length ? dataRow[i] : default!);
+                dict.Add(headers[i]!, i < dataRow.Length ? dataRow[i]! : default!);
             }
 
             models.Add(GetRecord(dict));
@@ -209,7 +212,10 @@ public class ImportRule<TModel> where TModel : class
     private List<TModel> ReadCsv(StreamReader reader)
     {
         using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-        var records = csv.GetRecords<object>();
+        var records = csv.GetRecords<object>().ToList();
+
+        CheckForEmptyFile(records);
+
         var models = new List<TModel>();
         foreach (var record in records)
         {
@@ -232,17 +238,31 @@ public class ImportRule<TModel> where TModel : class
         foreach (var rule in _rules)
         {
             var property = typeof(TModel).GetProperty(rule.PropertyName()) ??
-                           throw new InvalidPropertyNameException("Invalid property name", "");
+                           throw new InvalidPropertyNameException("Invalid property name", rule.ColumnName());
+            try
+            {
+                var value = dataRow[rule.ColumnName()];
 
-            var value = dataRow[rule.ColumnName()];
+                var convertMethod = rule.GetType().GetMethod("GetValue");
 
-            var convertMethod = rule.GetType().GetMethod("GetValue");
+                var convertedValue = convertMethod?.Invoke(rule, [value, model]);
 
-            var convertedValue = convertMethod?.Invoke(rule, [value, model]);
-
-            property.SetValue(model, convertedValue);
+                property.SetValue(model, convertedValue);
+            }
+            catch
+            {
+                throw new InvalidPropertyNameException("Invalid property name", rule.ColumnName());
+            }
         }
 
         return model;
+    }
+
+    private static void CheckForEmptyFile<T>(IEnumerable<T>? records)
+    {
+        if (records is null || !records.Any())
+        {
+            throw new EmptyFileImportException("Imported file is empty");
+        }
     }
 }
