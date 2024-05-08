@@ -251,7 +251,7 @@ public class ImportRule<TModel> where TModel : class
             }
             catch
             {
-                throw new InvalidPropertyNameException("Invalid property name", rule.ColumnName());
+                throw new InvalidCellValueException("Invalid cell value", rule.ColumnName());
             }
         }
 
