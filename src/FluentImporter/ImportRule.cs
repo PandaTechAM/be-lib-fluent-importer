@@ -63,7 +63,7 @@ public class ImportRule<TModel> where TModel : class
         {
             if (_isValueRequired && string.IsNullOrWhiteSpace(value))
             {
-                throw new InvalidColumnValueException($"Value for column '{_columnName}' is required", value);
+                throw new InvalidColumnValueException($"Column value is required", $"{_columnName}: {value}");
             }
 
             string? innerValue;

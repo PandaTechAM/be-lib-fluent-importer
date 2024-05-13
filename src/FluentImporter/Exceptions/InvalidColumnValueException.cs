@@ -1,4 +1,4 @@
 namespace FluentImporter.Exceptions;
 
-public class InvalidColumnValueException(string message, string? value = null)
-    : ImportException(message, value);
+public class InvalidColumnValueException(string message, string? messageDetails = null)
+    : ImportException(message, messageDetails);
