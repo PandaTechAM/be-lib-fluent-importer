@@ -1,4 +1,4 @@
 namespace FluentImporter.Exceptions;
 
-public class InvalidCellValueException(string message, string? value = null)
-    : ImportException(message, value);
+public class InvalidCellValueException(string message, string? messageDetails = null)
+    : ImportException(message, messageDetails);
