@@ -8,13 +8,13 @@
         <Copyright>MIT</Copyright>
         <PackageIcon>Logo.jpg</PackageIcon>
         <PackageReadmeFile>Readme.md</PackageReadmeFile>
-        <Version>2.0.8</Version>
+        <Version>2.0.9</Version>
         <Company>PandaTech</Company>
         <Title>Fluent Importer</Title>
         <PackageTags>Pandatech, libray, import, excel, csv, xlsx, fluent</PackageTags>
         <Description>Import data from XLSX or CSV</Description>
         <RepositoryUrl>https://github.com/PandaTechAM/be-lib-fluent-importer</RepositoryUrl>
-        <PackageReleaseNotes>Naming changes and first release candidate</PackageReleaseNotes>
+        <PackageReleaseNotes>Boolean extended support</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
