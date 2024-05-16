@@ -86,12 +86,6 @@ public class ImportRule<TModel> where TModel : class
             {
                 type = type.GenericTypeArguments.First();
             }
-            
-            if (type == typeof(bool) || type == typeof(bool?))
-            {
-                if (innerValue == "1") return (TProperty)(object)true;
-                if (innerValue == "0") return (TProperty)(object)false;
-            }
 
             return _converterType switch
             {
