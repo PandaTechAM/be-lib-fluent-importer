@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using ClosedXML.Excel;
 using CsvHelper;
+using CsvHelper.Configuration;
 using FluentImporter.Enums;
 using FluentImporter.Exceptions;
 using FluentImporter.Services.Interfaces;
@@ -219,12 +220,18 @@ public class ImportRule<TModel> where TModel : class
 
     private List<TModel> ReadCsv(StreamReader reader)
     {
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = true,
+            PrepareHeaderForMatch = args => args.Header.ToLower()
+        });
+        
         var records = csv.GetRecords<object>().ToList();
 
         CheckForEmptyFile(records);
 
         var models = new List<TModel>();
+
         foreach (var record in records)
         {
             var recordMapped = (record as IDictionary<string, object>)!
@@ -238,7 +245,6 @@ public class ImportRule<TModel> where TModel : class
         return models;
     }
 
-
     private TModel GetRecord(IReadOnlyDictionary<string, string> dataRow)
     {
         var model = Activator.CreateInstance<TModel>();
@@ -249,7 +255,7 @@ public class ImportRule<TModel> where TModel : class
                            throw new InvalidPropertyNameException("Invalid property name", rule.ColumnName());
             try
             {
-                var value = dataRow[rule.ColumnName()];
+                var value = dataRow[rule.ColumnName().ToLower()];
 
                 var convertMethod = rule.GetType().GetMethod("GetValue");
 
