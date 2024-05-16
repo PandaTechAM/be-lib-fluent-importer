@@ -19,7 +19,7 @@ public static class ExcelSupport
         var users = new List<User>();
 
         // Assuming the first row contains headers and data starts from the second row
-        bool firstRow = true;
+        var firstRow = true;
         foreach (var row in worksheet.Rows())
         {
             if (firstRow)
@@ -40,7 +40,7 @@ public static class ExcelSupport
 
         // Convert the list of users to JSON
         var options = new JsonSerializerOptions { WriteIndented = true }; // To make the JSON output more readable
-        string json = JsonSerializer.Serialize(users, options);
+        var json = JsonSerializer.Serialize(users, options);
 
         // Write to console
         return json;
