@@ -99,7 +99,7 @@ public class ImportRule<TModel> where TModel : class
 
         public string PropertyName() => _propertyName;
 
-        public string ColumnName() => _columnName.ToLower();
+        public string ColumnName() => _columnName;
 
         public void WriteValue(TProperty value)
         {
