@@ -89,10 +89,8 @@ public class ImportRule<TModel> where TModel : class
 
             return _converterType switch
             {
-                ConverterType.None => innerValue == default
-                    ? _defaultValue
-                    : (TProperty?)System.Convert.ChangeType(innerValue, type) ??
-                      _defaultValue,
+                ConverterType.None => innerValue == default ? _defaultValue : ChangeType(innerValue, type) ??
+                                      _defaultValue,
                 ConverterType.Converter => _converter(innerValue!) ?? _defaultValue,
                 ConverterType.ConverterWithInstance => _converterWithInstance(innerValue!, model) ?? _defaultValue,
                 _ => throw new ArgumentOutOfRangeException(paramName: "", message: "Unknown converter type")
@@ -126,6 +124,16 @@ public class ImportRule<TModel> where TModel : class
         {
             _readFromType = ReadFromType.Function;
             _readFromModel = func;
+        }
+
+        private static TProperty? ChangeType(string innerValue, Type type)
+        {
+            if (type == typeof(bool) && int.TryParse(innerValue, out var result))
+            {
+                return (TProperty?)System.Convert.ChangeType(result, type);
+            }
+
+            return (TProperty?)System.Convert.ChangeType(innerValue, type);
         }
     }
 

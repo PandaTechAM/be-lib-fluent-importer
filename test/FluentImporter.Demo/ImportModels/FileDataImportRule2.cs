@@ -10,6 +10,7 @@ public class FileDataImportRule2: ImportRule<FileData>
         RuleFor(x => x.Description).ReadFromColumn("description details");
         RuleFor(x => x.Date).ReadFromColumn("date").Convert(DateTime.Parse);
         RuleFor(x => x.Comment).ReadFromColumn("comment");
+        RuleFor(x => x.IsEnabled).ReadFromColumn("IsEnabled");
         RuleFor(x => x.CreatedAt).Default(DateTime.UtcNow);
         RuleFor(x => x.Id).ReadFromColumn("Id").Convert(s => BaseConverter.PandaBaseConverter.Base36ToBase10(s)!.Value);
     }
