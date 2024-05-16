@@ -12,6 +12,7 @@ public class FileData
     public string Description { get; set; } = null!;
     public DateTime Date { get; set; }
     public string? Comment { get; set; }
+    public bool? IsEnabled { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

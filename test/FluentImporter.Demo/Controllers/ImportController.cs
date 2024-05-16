@@ -96,7 +96,7 @@ public class ImportController : ControllerBase
     [HttpPost("import-file-data-csv")]
     public async Task<IActionResult> ImportCsv(IFormFile file)
     {
-        var rule = new FileDataImportRule();
+        var rule = new FileDataImportRule2();
 
         using var memoryStream = new MemoryStream();
         await file.CopyToAsync(memoryStream);
