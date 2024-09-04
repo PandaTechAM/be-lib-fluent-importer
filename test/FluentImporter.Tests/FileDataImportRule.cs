@@ -21,7 +21,7 @@ public class FileDataImportRule : ImportRule<FileData>
         
         RuleFor(x => x.Id)
             .ReadFromColumn("Id")
-            .Validate("^[0-9]*$")
+            .Validate(@"^[0-9]*$")
             .Convert(long.Parse);
     }
 }

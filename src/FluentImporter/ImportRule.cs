@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -26,7 +27,7 @@ public class ImportRule<TModel> where TModel : class
         private TProperty _defaultValue = default!;
         private bool _isValueRequired;
         private Func<TModel, TProperty> _readFromModel = null!;
-        private string _regex = ".*";
+        private string _regex = ".*"; // Any string
         
         
         
@@ -50,7 +51,7 @@ public class ImportRule<TModel> where TModel : class
             return this;
         }
         
-        public PropertyRule<TProperty> Validate(string regex)
+        public PropertyRule<TProperty> Validate([StringSyntax(StringSyntaxAttribute.Regex)] string regex)
         {
             _regex = regex;
             return this;
@@ -72,9 +73,15 @@ public class ImportRule<TModel> where TModel : class
 
         public TProperty GetValue(string? value, TModel model)
         {
-            if (_isValueRequired && string.IsNullOrWhiteSpace(value))
+            if (_isValueRequired && string.IsNullOrWhiteSpace(value) && _readFromType == ReadFromType.Column)
             {
-                throw new InvalidColumnValueException($"Column value is required", $"{_columnName}: {value}");
+                throw new InvalidColumnValueException($"Column value is required", $"{_columnName}");
+            }
+            
+            var regex = new Regex(_regex);
+            if (_isValueRequired && !regex.IsMatch(value!) && _readFromType == ReadFromType.Column)
+            {
+                throw new InvalidColumnValueException($"Column value is not valid", $"{_columnName}: {value}");
             }
             
             string? innerValue;
@@ -92,11 +99,7 @@ public class ImportRule<TModel> where TModel : class
                     throw new ArgumentOutOfRangeException(paramName: "", message: "Unknown read from type");
             }
             
-            var regex = new Regex(_regex);
-            if (innerValue is not null && !regex.IsMatch(innerValue))
-            {
-                throw new InvalidColumnValueException($"Column value is not valid", $"{_columnName}: {value}");
-            }
+
             
             var type = typeof(TProperty);
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
