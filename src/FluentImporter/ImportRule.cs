@@ -78,7 +78,7 @@ public class ImportRule<TModel> where TModel : class
                 throw new InvalidColumnValueException($"Column value is required", $"{_columnName}");
             }
             
-            var regex = new Regex(_regex);
+            var regex = new Regex(_regex, RegexOptions.IgnoreCase);
             if (_isValueRequired && !regex.IsMatch(value!) && _readFromType == ReadFromType.Column)
             {
                 throw new InvalidColumnValueException($"Column value is not valid", $"{_columnName}: {value}");
