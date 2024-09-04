@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -25,18 +26,21 @@ public class ImportRule<TModel> where TModel : class
         private TProperty _defaultValue = default!;
         private bool _isValueRequired;
         private Func<TModel, TProperty> _readFromModel = null!;
+        private string _regex = ".*";
+        
+        
+        
+        private Func<string, TProperty> _converter = x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
 
+        private Func<string, TModel, TProperty> _converterWithInstance =
+            (x, _) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
+        
         public PropertyRule(MemberExpression navigationPropertyPath)
         {
             _propertyName = navigationPropertyPath.Member.Name ??
                             throw new InvalidPropertyNameException("Invalid property name", _propertyName);
             _columnName = _propertyName;
         }
-
-        private Func<string, TProperty> _converter = x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
-
-        private Func<string, TModel, TProperty> _converterWithInstance =
-            (x, _) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
 
 
         public PropertyRule<TProperty> ReadFromColumn(string name)
@@ -45,14 +49,20 @@ public class ImportRule<TModel> where TModel : class
             _readFromType = ReadFromType.Column;
             return this;
         }
-
+        
+        public PropertyRule<TProperty> Validate(string regex)
+        {
+            _regex = regex;
+            return this;
+        }
+        
         public PropertyRule<TProperty> Convert(Func<string, TProperty> func)
         {
             _converter = func;
             _converterType = ConverterType.Converter;
             return this;
         }
-
+        
         public PropertyRule<TProperty> Convert(Func<string, TModel, TProperty> func)
         {
             _converterWithInstance = func;
@@ -66,7 +76,7 @@ public class ImportRule<TModel> where TModel : class
             {
                 throw new InvalidColumnValueException($"Column value is required", $"{_columnName}: {value}");
             }
-
+            
             string? innerValue;
             switch (_readFromType)
             {
@@ -81,7 +91,13 @@ public class ImportRule<TModel> where TModel : class
                 default:
                     throw new ArgumentOutOfRangeException(paramName: "", message: "Unknown read from type");
             }
-
+            
+            var regex = new Regex(_regex);
+            if (innerValue is not null && !regex.IsMatch(innerValue))
+            {
+                throw new InvalidColumnValueException($"Column value is not valid", $"{_columnName}: {value}");
+            }
+            
             var type = typeof(TProperty);
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {

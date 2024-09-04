@@ -8,27 +8,27 @@ public class ServiceTests
     {
         new Dictionary<string, string>()
         {
-            { "Id", "1" },
-            { "Name", "Name1" },
-            { "Description", "Description1" },
-            { "Date", "2021-01-01" },
-            { "Comment", "Comment1" }
+            { "Id".ToLower(), "1" },
+            { "Name".ToLower(), "Name1" },
+            { "Description".ToLower(), "Description1" },
+            { "Date".ToLower(), "2021-01-01" },
+            { "Comment".ToLower(), "Comment1" }
         },
         new Dictionary<string, string>()
         {
-            { "Id", "3" },
-            { "Name", "Name1" },
-            { "Description", "Description1" },
-            { "Date", "2021-01-01" },
-            { "Comment", "Comment1" }
+            { "Id".ToLower(), "3" },
+            { "Name".ToLower(), "Name1" },
+            { "Description".ToLower(), "Description1" },
+            { "Date".ToLower(), "2021-01-01" },
+            { "Comment".ToLower(), "Comment1" }
         },
         new Dictionary<string, string>()
         {
-            { "Id", "4" },
-            { "Name", "Name1" },
-            { "Description", "Description1" },
-            { "Date", "2021-01-01" },
-            { "Comment", "Comment1" }
+            { "Id".ToLower(), "4" },
+            { "Name".ToLower(), "Name1" },
+            { "Description".ToLower(), "Description1" },
+            { "Date".ToLower(), "2021-01-01" },
+            { "Comment".ToLower(), "Comment1" }
         }
     };
 
