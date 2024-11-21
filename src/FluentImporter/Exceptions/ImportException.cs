@@ -3,7 +3,7 @@ using System;
 namespace FluentImporter.Exceptions;
 
 public abstract class ImportException(string message, string? messageDetails = null)
-    : Exception(message)
+   : Exception(message)
 {
-    public string? MessageDetails { get; private set; } = messageDetails;
+   public string? MessageDetails { get; private set; } = messageDetails;
 }
