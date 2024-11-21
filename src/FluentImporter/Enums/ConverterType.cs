@@ -2,7 +2,7 @@
 
 internal enum ConverterType
 {
-    None,
-    Converter,
-    ConverterWithInstance
+   None,
+   Converter,
+   ConverterWithInstance
 }

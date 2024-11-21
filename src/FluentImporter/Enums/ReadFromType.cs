@@ -2,8 +2,8 @@
 
 internal enum ReadFromType
 {
-    None,
-    Column,
-    Value,
-    Function
+   None,
+   Column,
+   Value,
+   Function
 }

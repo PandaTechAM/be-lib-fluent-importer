@@ -3,6 +3,7 @@ using FluentImporter.Demo.ImportModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 
 namespace FluentImporter.Demo.Controllers;
 
