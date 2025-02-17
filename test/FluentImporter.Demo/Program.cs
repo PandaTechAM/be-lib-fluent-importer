@@ -4,7 +4,7 @@ using FluentMinimalApiMapper;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddDatabase();
-builder.AddEndpoints();
+builder.AddMinimalApis();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -17,7 +17,7 @@ app.CreateDatabase();
 
 app.UseSwagger();
 app.UseSwaggerUI();
-app.MapEndpoints();
+app.MapMinimalApis();
 app.MapControllers();
 
 app.Run();
