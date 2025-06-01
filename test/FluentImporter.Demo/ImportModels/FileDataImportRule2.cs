@@ -20,6 +20,5 @@ public class FileDataImportRule2: ImportRule<FileData>
         RuleFor(x => x.Comment).ReadFromColumn("Comment");
         RuleFor(x => x.IsEnabled).ReadFromColumn("Is Enabled");
         RuleFor(x => x.CreatedAt).ReadFromColumn("Created At").Default(DateTime.UtcNow);
-        RuleFor(x => x.Id).ReadFromColumn("Id").Convert(s => BaseConverter.PandaBaseConverter.Base36ToBase10(s)!.Value);
     }
 }
