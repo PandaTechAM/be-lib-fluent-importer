@@ -32,7 +32,7 @@ public class ImportRule<TModel> where TModel : class
 
    public IEnumerable<TModel> GetRecords(IEnumerable<Dictionary<string, string>> data)
    {
-      return data.Select(GetRecord);
+      return data.Select(row => GetRecord(row));
    }
 
    public List<TModel> ReadCsv(Stream csvStream)
@@ -70,9 +70,8 @@ public class ImportRule<TModel> where TModel : class
          throw new EmptyFileImportException("Imported file is empty");
       }
 
-      var headerCells = firstRow.CellsUsed()
-                                .ToArray();
-      var headers = headerCells
+      var headers = firstRow
+                    .CellsUsed()
                     .Select(c => NormalizeHeader(c.GetString()))
                     .ToArray();
 
@@ -95,7 +94,7 @@ public class ImportRule<TModel> where TModel : class
             dict.Add(header, value!);
          }
 
-         models.Add(GetRecord(dict));
+         models.Add(GetRecord(dict, r));
       }
 
       CheckForEmptyFile(models);
@@ -130,33 +129,47 @@ public class ImportRule<TModel> where TModel : class
 
       var models = new List<TModel>(records.Count);
 
-      models.AddRange(records.Select(record => (record as IDictionary<string, object>)!
-                                               .ToDictionary(kv => kv.Key, kv => kv.Value.ToString())
-                                               .AsReadOnly())
-                             .Select(dict => GetRecord(dict!)));
+      for (var i = 0; i < records.Count; i++)
+      {
+         var record = records[i];
+         var dict = (record as IDictionary<string, object>)!
+                    .ToDictionary(kv => kv.Key, kv => kv.Value?.ToString())
+                    .AsReadOnly();
+
+         // header is row 1, first data row is 2
+         models.Add(GetRecord(dict!, i + 2));
+      }
 
       return models;
    }
 
    private TModel GetRecord(IReadOnlyDictionary<string, string> dataRow)
    {
+      return GetRecord(dataRow, null);
+   }
+
+   private TModel GetRecord(IReadOnlyDictionary<string, string> dataRow, int? rowIndex)
+   {
       var model = Activator.CreateInstance<TModel>();
 
       foreach (var rule in _rules)
       {
-         var prop = typeof(TModel).GetProperty(rule.PropertyName());
+         var column = rule.ColumnName();
+         var propertyName = rule.PropertyName();
+
+         var prop = typeof(TModel).GetProperty(propertyName);
          if (prop is null)
          {
-            throw new InvalidPropertyNameException("Invalid property name", rule.ColumnName());
+            throw new InvalidPropertyNameException("Invalid property name", column);
          }
+
+         string? raw = null;
 
          try
          {
-            if (!dataRow.TryGetValue(rule.ColumnName()
-                                         .ToLowerInvariant(),
-                   out var raw))
+            if (!dataRow.TryGetValue(column.ToLowerInvariant(), out raw))
             {
-               throw new InvalidColumnValueException("Column not found", rule.ColumnName());
+               throw new InvalidColumnValueException("Column not found", column);
             }
 
             var convertMethod = rule.GetType()
@@ -177,13 +190,26 @@ public class ImportRule<TModel> where TModel : class
          {
             throw;
          }
-         catch
+         catch (Exception ex)
          {
-            throw new InvalidCellValueException("Invalid cell value", rule.ColumnName());
+            var rowInfo = rowIndex.HasValue ? $"row {rowIndex.Value}" : "row ?";
+            var msg =
+               $"Invalid cell value at {rowInfo}, column '{column}', property '{propertyName}', raw '{Truncate(raw, 256)}', target '{prop.PropertyType.Name}'. Error: {ex.Message}";
+            throw new InvalidCellValueException(msg, column);
          }
       }
 
       return model;
+   }
+
+   private static string Truncate(string? s, int max)
+   {
+      if (s is null)
+      {
+         return "null";
+      }
+
+      return s.Length <= max ? s : s.Substring(0, max) + "…";
    }
 
    private static void CheckForEmptyFile<T>(IEnumerable<T>? records)
@@ -202,7 +228,6 @@ public class ImportRule<TModel> where TModel : class
       private Func<string, TProperty> _converter =
          x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty), CultureInfo.InvariantCulture);
 
-
       private ConverterType _converterType = ConverterType.None;
 
       private Func<string, TModel, TProperty> _converterWithInstance =
@@ -219,7 +244,6 @@ public class ImportRule<TModel> where TModel : class
       public PropertyRule(MemberExpression navigationPropertyPath)
       {
          _propertyName = navigationPropertyPath.Member.Name;
-
          _columnName = _propertyName ?? throw new InvalidPropertyNameException("Invalid property name", string.Empty);
       }
 
@@ -284,7 +308,7 @@ public class ImportRule<TModel> where TModel : class
             case ReadFromType.Value:
                return _readValue;
             case ReadFromType.Function:
-               return FromModel();
+               return _readFromModel is null ? _defaultValue : _readFromModel.Invoke(model) ?? _defaultValue;
             case ReadFromType.None:
             case ReadFromType.Column:
                break;
@@ -317,16 +341,6 @@ public class ImportRule<TModel> where TModel : class
             ConverterType.ConverterWithInstance => _converterWithInstance(innerValue!, model) ?? _defaultValue,
             _ => throw new ArgumentOutOfRangeException("", "Unknown converter type")
          };
-
-         TProperty FromModel()
-         {
-            if (_readFromModel is null)
-            {
-               return _defaultValue;
-            }
-
-            return _readFromModel.Invoke(model) ?? _defaultValue;
-         }
       }
 
       public void WriteValue(TProperty value)
