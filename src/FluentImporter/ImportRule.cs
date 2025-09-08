@@ -20,23 +20,20 @@ public class ImportRule<TModel> where TModel : class
 
    protected PropertyRule<TProperty> RuleFor<TProperty>(Expression<Func<TModel, TProperty>> navigationPropertyPath)
    {
-      var rule = new PropertyRule<TProperty>(navigationPropertyPath.Body as MemberExpression ??
-                                             throw new InvalidPropertyNameException("Invalid property name",
-                                                string.Empty));
+      if (navigationPropertyPath.Body is not MemberExpression me)
+      {
+         throw new InvalidPropertyNameException("Invalid property name", string.Empty);
+      }
 
+      var rule = new PropertyRule<TProperty>(me);
       _rules.Add(rule);
-
       return rule;
    }
 
    public IEnumerable<TModel> GetRecords(IEnumerable<Dictionary<string, string>> data)
    {
-      foreach (var dataRow in data)
-      {
-         yield return GetRecord(dataRow);
-      }
+      return data.Select(GetRecord);
    }
-
 
    public List<TModel> ReadCsv(Stream csvStream)
    {
@@ -53,54 +50,67 @@ public class ImportRule<TModel> where TModel : class
 
    public List<TModel> ReadXlsx(string xlsxFilePath)
    {
-      using var stream = File.Open(xlsxFilePath, FileMode.Open);
+      using var stream = File.Open(xlsxFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
       return ReadXlsx(stream);
    }
 
    public List<TModel> ReadXlsx(Stream stream)
    {
-      var worksheet = new XLWorkbook(stream).Worksheets.First();
-      var rowCount = worksheet.RowsUsed()
-                              .Count();
-      var columnCount = rowCount > 0
-         ? worksheet.Rows()
-                    .Max(row => row.CellsUsed()
-                                   .Count())
-         : 0;
+      using var workbook = new XLWorkbook(stream);
+      var worksheet = workbook.Worksheets.FirstOrDefault();
+      if (worksheet is null)
+      {
+         throw new EmptyFileImportException("Imported file is empty");
+      }
 
-      var data = Enumerable.Range(1, rowCount)
-                           .Select(rowIndex =>
-                           {
-                              var row = worksheet.Row(rowIndex);
-                              return Enumerable.Range(1, columnCount)
-                                               .Select(colIndex =>
-                                               {
-                                                  var cell = row.Cell(colIndex);
-                                                  return cell.IsEmpty() ? null : cell.Value.ToString();
-                                               })
-                                               .ToArray();
-                           })
-                           .ToList();
+      var firstRow = worksheet.FirstRowUsed();
+      var lastRow = worksheet.LastRowUsed();
+      if (firstRow is null || lastRow is null)
+      {
+         throw new EmptyFileImportException("Imported file is empty");
+      }
 
-      CheckForEmptyFile(data);
-
-      var models = new List<TModel>(data.Count);
-      var headers = data[0]
-                    .Select(x => x?.ToLower())
+      var headerCells = firstRow.CellsUsed()
+                                .ToArray();
+      var headers = headerCells
+                    .Select(c => NormalizeHeader(c.GetString()))
                     .ToArray();
 
-      foreach (var dataRow in data.Skip(1))
+      var models = new List<TModel>(Math.Max(0, lastRow.RowNumber() - firstRow.RowNumber()));
+      for (var r = firstRow.RowNumber() + 1; r <= lastRow.RowNumber(); r++)
       {
-         var dict = new Dictionary<string, string>();
+         var row = worksheet.Row(r);
+         var dict = new Dictionary<string, string>(capacity: headers.Length);
+
          for (var i = 0; i < headers.Length; i++)
          {
-            dict.Add(headers[i]!, i < dataRow.Length ? dataRow[i]! : default!);
+            var header = headers[i];
+            if (string.IsNullOrEmpty(header))
+            {
+               continue;
+            }
+
+            var cell = row.Cell(i + 1);
+            var value = cell.IsEmpty() ? null : cell.Value.ToString();
+            dict.Add(header, value!);
          }
 
          models.Add(GetRecord(dict));
       }
 
+      CheckForEmptyFile(models);
       return models;
+   }
+
+   private static string? NormalizeHeader(string? s)
+   {
+      if (string.IsNullOrWhiteSpace(s))
+      {
+         return null;
+      }
+
+      return s.Trim()
+              .ToLowerInvariant();
    }
 
    private List<TModel> ReadCsv(StreamReader reader)
@@ -109,25 +119,21 @@ public class ImportRule<TModel> where TModel : class
          new CsvConfiguration(CultureInfo.InvariantCulture)
          {
             HasHeaderRecord = true,
-            PrepareHeaderForMatch = args => args.Header.ToLower()
+            PrepareHeaderForMatch = args => args.Header
+                                                .Trim()
+                                                .ToLowerInvariant()
          });
 
       var records = csv.GetRecords<object>()
                        .ToList();
-
       CheckForEmptyFile(records);
 
-      var models = new List<TModel>();
+      var models = new List<TModel>(records.Count);
 
-      foreach (var record in records)
-      {
-         var recordMapped = (record as IDictionary<string, object>)!
-                            .ToDictionary(x => x.Key,
-                               x => (string)x.Value == string.Empty ? null : (string)x.Value)
-                            .AsReadOnly();
-
-         models.Add(GetRecord(recordMapped!));
-      }
+      models.AddRange(records.Select(record => (record as IDictionary<string, object>)!
+                                               .ToDictionary(kv => kv.Key, kv => kv.Value.ToString())
+                                               .AsReadOnly())
+                             .Select(dict => GetRecord(dict!)));
 
       return models;
    }
@@ -138,19 +144,38 @@ public class ImportRule<TModel> where TModel : class
 
       foreach (var rule in _rules)
       {
-         var property = typeof(TModel).GetProperty(rule.PropertyName()) ??
-                        throw new InvalidPropertyNameException("Invalid property name", rule.ColumnName());
+         var prop = typeof(TModel).GetProperty(rule.PropertyName());
+         if (prop is null)
+         {
+            throw new InvalidPropertyNameException("Invalid property name", rule.ColumnName());
+         }
+
          try
          {
-            var value = dataRow[rule.ColumnName()
-                                    .ToLower()];
+            if (!dataRow.TryGetValue(rule.ColumnName()
+                                         .ToLowerInvariant(),
+                   out var raw))
+            {
+               throw new InvalidColumnValueException("Column not found", rule.ColumnName());
+            }
 
             var convertMethod = rule.GetType()
-                                    .GetMethod("GetValue");
+                                    .GetMethod("GetValue",
+                                    [
+                                       typeof(string),
+                                       typeof(TModel)
+                                    ]);
+            var converted = convertMethod?.Invoke(rule,
+            [
+               raw,
+               model
+            ]);
 
-            var convertedValue = convertMethod?.Invoke(rule, [value, model]);
-
-            property.SetValue(model, convertedValue);
+            prop.SetValue(model, converted);
+         }
+         catch (InvalidColumnValueException)
+         {
+            throw;
          }
          catch
          {
@@ -174,25 +199,28 @@ public class ImportRule<TModel> where TModel : class
       private readonly string _propertyName;
       private string _columnName;
 
+      private Func<string, TProperty> _converter =
+         x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty), CultureInfo.InvariantCulture);
 
-      private Func<string, TProperty> _converter = x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
+
       private ConverterType _converterType = ConverterType.None;
 
       private Func<string, TModel, TProperty> _converterWithInstance =
-         (x, _) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty));
+         (x, _) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty), CultureInfo.InvariantCulture);
 
       private TProperty _defaultValue = default!;
       private bool _isValueRequired;
-      private Func<TModel, TProperty> _readFromModel = null!;
+      private Func<TModel, TProperty>? _readFromModel;
       private ReadFromType _readFromType = ReadFromType.None;
       private TProperty _readValue = default!;
-      private string _regex = ".*";
+      private string _regexPattern = ".*";
+      private Regex? _regexCompiled;
 
       public PropertyRule(MemberExpression navigationPropertyPath)
       {
-         _propertyName = navigationPropertyPath.Member.Name ??
-                         throw new InvalidPropertyNameException("Invalid property name", _propertyName);
-         _columnName = _propertyName;
+         _propertyName = navigationPropertyPath.Member.Name;
+
+         _columnName = _propertyName ?? throw new InvalidPropertyNameException("Invalid property name", string.Empty);
       }
 
       public string PropertyName()
@@ -205,7 +233,6 @@ public class ImportRule<TModel> where TModel : class
          return _columnName;
       }
 
-
       public PropertyRule<TProperty> ReadFromColumn(string name)
       {
          _columnName = name;
@@ -215,7 +242,11 @@ public class ImportRule<TModel> where TModel : class
 
       public PropertyRule<TProperty> Validate(string regex)
       {
-         _regex = regex;
+         _regexPattern = regex;
+         _regexCompiled = new Regex(
+            _regexPattern,
+            RegexOptions.ExplicitCapture | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(250));
          return this;
       }
 
@@ -240,43 +271,62 @@ public class ImportRule<TModel> where TModel : class
             throw new InvalidColumnValueException("Column value is required", $"{_columnName}: {value}");
          }
 
-         string? innerValue;
+         var innerValue = _readFromType switch
+         {
+            ReadFromType.None or ReadFromType.Column => value ?? _defaultValue?.ToString(),
+            ReadFromType.Value => null,
+            ReadFromType.Function => null,
+            _ => throw new ArgumentOutOfRangeException("", "Unknown read from type")
+         };
+
          switch (_readFromType)
          {
-            case ReadFromType.None:
-            case ReadFromType.Column:
-               innerValue = value ?? _defaultValue?.ToString();
-               break;
             case ReadFromType.Value:
                return _readValue;
             case ReadFromType.Function:
-               return _readFromModel.Invoke(model) ?? _defaultValue;
+               return FromModel();
+            case ReadFromType.None:
+            case ReadFromType.Column:
+               break;
             default:
-               throw new ArgumentOutOfRangeException("", "Unknown read from type");
+               throw new ArgumentOutOfRangeException();
          }
 
-         var regex = new Regex(_regex);
-         if (innerValue is not null && !regex.IsMatch(innerValue))
+         _regexCompiled ??= new Regex(
+            _regexPattern,
+            RegexOptions.ExplicitCapture | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(250));
+
+         if (innerValue is not null && !_regexCompiled.IsMatch(innerValue))
          {
             throw new InvalidColumnValueException("Column value is not valid", $"{_columnName}: {value}");
          }
 
-         var type = typeof(TProperty);
-         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+         var targetType = typeof(TProperty);
+         if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
          {
-            type = type.GenericTypeArguments.First();
+            targetType = targetType.GenericTypeArguments.First();
          }
 
          return _converterType switch
          {
-            ConverterType.None => innerValue == default
+            ConverterType.None => innerValue == null
                ? _defaultValue
-               : ChangeType(innerValue, type) ??
-                 _defaultValue,
+               : ChangeType(innerValue, targetType) ?? _defaultValue,
             ConverterType.Converter => _converter(innerValue!) ?? _defaultValue,
             ConverterType.ConverterWithInstance => _converterWithInstance(innerValue!, model) ?? _defaultValue,
             _ => throw new ArgumentOutOfRangeException("", "Unknown converter type")
          };
+
+         TProperty FromModel()
+         {
+            if (_readFromModel is null)
+            {
+               return _defaultValue;
+            }
+
+            return _readFromModel.Invoke(model) ?? _defaultValue;
+         }
       }
 
       public void WriteValue(TProperty value)
@@ -294,7 +344,6 @@ public class ImportRule<TModel> where TModel : class
       public PropertyRule<TProperty> NotEmpty()
       {
          _isValueRequired = true;
-
          return this;
       }
 
@@ -306,12 +355,37 @@ public class ImportRule<TModel> where TModel : class
 
       private static TProperty? ChangeType(string innerValue, Type type)
       {
-         if (type == typeof(bool) && int.TryParse(innerValue, out var result))
+         if (type.IsEnum)
          {
-            return (TProperty?)System.Convert.ChangeType(result, type);
+            return (TProperty?)Enum.Parse(type, innerValue, ignoreCase: true);
          }
 
-         return (TProperty?)System.Convert.ChangeType(innerValue, type);
+         if (type != typeof(bool))
+         {
+            return (TProperty?)System.Convert.ChangeType(innerValue, type, CultureInfo.InvariantCulture);
+         }
+
+         if (bool.TryParse(innerValue, out var b))
+         {
+            return (TProperty?)(object)b;
+         }
+
+         if (int.TryParse(innerValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i))
+         {
+            return (TProperty?)(object)(i != 0);
+         }
+
+         if (string.Equals(innerValue, "yes", StringComparison.OrdinalIgnoreCase))
+         {
+            return (TProperty?)(object)true;
+         }
+
+         if (string.Equals(innerValue, "no", StringComparison.OrdinalIgnoreCase))
+         {
+            return (TProperty?)(object)false;
+         }
+
+         return (TProperty?)System.Convert.ChangeType(innerValue, type, CultureInfo.InvariantCulture);
       }
    }
 }

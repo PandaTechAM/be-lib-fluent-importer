@@ -5,8 +5,8 @@ public static class StreamTypeChecker
    // Method to check if the stream is in OLE2 format
    public static bool IsStreamOLE2(Stream stream)
    {
-      byte[] signature = new byte[8]
-      {
+      byte[] signature =
+      [
          0xD0,
          0xCF,
          0x11,
@@ -15,7 +15,7 @@ public static class StreamTypeChecker
          0xB1,
          0x1A,
          0xE1
-      };
+      ];
 
       byte[] buffer = new byte[8];
       stream.Read(buffer, 0, 8);
@@ -32,13 +32,13 @@ public static class StreamTypeChecker
    // Method to check if the stream is in OOXML format
    public static bool IsStreamOOXML(Stream stream)
    {
-      byte[] signature = new byte[4]
-      {
+      byte[] signature =
+      [
          0x50,
          0x4B,
          0x03,
          0x04
-      };
+      ];
 
       byte[] buffer = new byte[4];
       stream.Read(buffer, 0, 4);
