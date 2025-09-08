@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using CsvHelper;
@@ -133,22 +134,16 @@ public class ImportRule<TModel> where TModel : class
       {
          var record = records[i];
          var dict = (record as IDictionary<string, object>)!
-                    .ToDictionary(kv => kv.Key, kv => kv.Value?.ToString())
+                    .ToDictionary(kv => kv.Key, kv => kv.Value.ToString())
                     .AsReadOnly();
 
-         // header is row 1, first data row is 2
          models.Add(GetRecord(dict!, i + 2));
       }
 
       return models;
    }
 
-   private TModel GetRecord(IReadOnlyDictionary<string, string> dataRow)
-   {
-      return GetRecord(dataRow, null);
-   }
-
-   private TModel GetRecord(IReadOnlyDictionary<string, string> dataRow, int? rowIndex)
+   private TModel GetRecord(IReadOnlyDictionary<string, string> dataRow, int? rowIndex = null)
    {
       var model = Activator.CreateInstance<TModel>();
 
@@ -167,24 +162,14 @@ public class ImportRule<TModel> where TModel : class
 
          try
          {
-            if (!dataRow.TryGetValue(column.ToLowerInvariant(), out raw))
+            if (!TryGetHeaderValue(dataRow, column, out raw))
             {
                throw new InvalidColumnValueException("Column not found", column);
             }
 
-            var convertMethod = rule.GetType()
-                                    .GetMethod("GetValue",
-                                    [
-                                       typeof(string),
-                                       typeof(TModel)
-                                    ]);
-            var converted = convertMethod?.Invoke(rule,
-            [
-               raw,
-               model
-            ]);
+            var converted = InvokeGetValue(rule, raw, model);
 
-            prop.SetValue(model, converted);
+            SetPropertySmart(prop, model, converted);
          }
          catch (InvalidColumnValueException)
          {
@@ -194,12 +179,91 @@ public class ImportRule<TModel> where TModel : class
          {
             var rowInfo = rowIndex.HasValue ? $"row {rowIndex.Value}" : "row ?";
             var msg =
-               $"Invalid cell value at {rowInfo}, column '{column}', property '{propertyName}', raw '{Truncate(raw, 256)}', target '{prop.PropertyType.Name}'. Error: {ex.Message}";
+               $"Invalid cell value at {rowInfo}, column '{column}', property '{propertyName}', raw '{Truncate(raw, 256)}', target '{prop.PropertyType.Name}'. Error: {GetInnermostMessage(ex)}";
             throw new InvalidCellValueException(msg, column);
          }
       }
 
       return model;
+   }
+
+   private static object? InvokeGetValue(IPropertyRule rule, string? raw, TModel model)
+   {
+      var method = rule.GetType()
+                       .GetMethod("GetValue", [typeof(string), typeof(TModel)]);
+      if (method is null)
+      {
+         throw new MissingMethodException(rule.GetType()
+                                              .FullName,
+            "GetValue(string, TModel)");
+      }
+
+      try
+      {
+         return method.Invoke(rule, [raw, model]);
+      }
+      catch (TargetInvocationException tie)
+      {
+         throw tie.InnerException ?? tie;
+      }
+   }
+
+   private static bool TryGetHeaderValue(IReadOnlyDictionary<string, string> row,
+      string columnName,
+      out string? value)
+   {
+      if (row.TryGetValue(columnName, out value!))
+      {
+         return true;
+      }
+
+      var lower = columnName.ToLowerInvariant();
+      if (row.TryGetValue(lower, out value!))
+      {
+         return true;
+      }
+
+      var norm = NormalizeHeader(columnName);
+      if (norm is not null && row.TryGetValue(norm, out value!))
+      {
+         return true;
+      }
+
+      value = null;
+      return false;
+   }
+
+   private static void SetPropertySmart(PropertyInfo prop, object target, object? value)
+   {
+      var setter = prop.SetMethod;
+
+      if (setter is not null && !IsInitOnly(prop))
+      {
+         prop.SetValue(target, value);
+         return;
+      }
+
+      var backing = prop.DeclaringType!.GetField($"<{prop.Name}>k__BackingField",
+         BindingFlags.Instance | BindingFlags.NonPublic);
+
+      if (backing is null)
+      {
+         throw new InvalidOperationException($"Property '{prop.Name}' is not settable.");
+      }
+
+      backing.SetValue(target, value);
+   }
+
+   private static bool IsInitOnly(PropertyInfo prop)
+   {
+      var setter = prop.SetMethod;
+      if (setter is null)
+      {
+         return false;
+      }
+
+      var mods = setter.ReturnParameter.GetRequiredCustomModifiers();
+      return mods.Any(static m => m == typeof(System.Runtime.CompilerServices.IsExternalInit));
    }
 
    private static string Truncate(string? s, int max)
@@ -210,6 +274,16 @@ public class ImportRule<TModel> where TModel : class
       }
 
       return s.Length <= max ? s : s.Substring(0, max) + "…";
+   }
+
+   private static string GetInnermostMessage(Exception ex)
+   {
+      while (ex.InnerException is not null)
+      {
+         ex = ex.InnerException;
+      }
+
+      return ex.Message;
    }
 
    private static void CheckForEmptyFile<T>(IEnumerable<T>? records)
@@ -306,14 +380,22 @@ public class ImportRule<TModel> where TModel : class
          switch (_readFromType)
          {
             case ReadFromType.Value:
+            {
                return _readValue;
+            }
             case ReadFromType.Function:
+            {
                return _readFromModel is null ? _defaultValue : _readFromModel.Invoke(model) ?? _defaultValue;
+            }
             case ReadFromType.None:
             case ReadFromType.Column:
+            {
                break;
+            }
             default:
+            {
                throw new ArgumentOutOfRangeException();
+            }
          }
 
          _regexCompiled ??= new Regex(
