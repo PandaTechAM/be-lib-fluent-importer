@@ -137,6 +137,7 @@ public class ImportRule<TModel> where TModel : class
                     .ToDictionary(kv => kv.Key, kv => kv.Value.ToString())
                     .AsReadOnly();
 
+         // header is row 1, first data row is 2
          models.Add(GetRecord(dict!, i + 2));
       }
 
@@ -171,9 +172,12 @@ public class ImportRule<TModel> where TModel : class
 
             SetPropertySmart(prop, model, converted);
          }
-         catch (InvalidColumnValueException)
+         catch (InvalidColumnValueException ice)
          {
-            throw;
+            var rowInfo = rowIndex.HasValue ? $"row {rowIndex.Value}" : "row ?";
+            var msg =
+               $"Invalid cell value at {rowInfo}, column '{column}', property '{propertyName}', raw '{Truncate(raw, 256)}', target '{prop.PropertyType.Name}'. Error: {GetInnermostMessage(ice)}";
+            throw new InvalidCellValueException(msg, column);
          }
          catch (Exception ex)
          {
@@ -380,22 +384,14 @@ public class ImportRule<TModel> where TModel : class
          switch (_readFromType)
          {
             case ReadFromType.Value:
-            {
                return _readValue;
-            }
             case ReadFromType.Function:
-            {
                return _readFromModel is null ? _defaultValue : _readFromModel.Invoke(model) ?? _defaultValue;
-            }
             case ReadFromType.None:
             case ReadFromType.Column:
-            {
                break;
-            }
             default:
-            {
                throw new ArgumentOutOfRangeException();
-            }
          }
 
          _regexCompiled ??= new Regex(
