@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using CsvHelper;
@@ -80,7 +81,7 @@ public class ImportRule<TModel> where TModel : class
       for (var r = firstRow.RowNumber() + 1; r <= lastRow.RowNumber(); r++)
       {
          var row = worksheet.Row(r);
-         var dict = new Dictionary<string, string>(capacity: headers.Length);
+         var dict = new Dictionary<string, string>(headers.Length);
 
          for (var i = 0; i < headers.Length; i++)
          {
@@ -267,7 +268,7 @@ public class ImportRule<TModel> where TModel : class
       }
 
       var mods = setter.ReturnParameter.GetRequiredCustomModifiers();
-      return mods.Any(static m => m == typeof(System.Runtime.CompilerServices.IsExternalInit));
+      return mods.Any(static m => m == typeof(IsExternalInit));
    }
 
    private static string Truncate(string? s, int max)
@@ -316,8 +317,8 @@ public class ImportRule<TModel> where TModel : class
       private Func<TModel, TProperty>? _readFromModel;
       private ReadFromType _readFromType = ReadFromType.None;
       private TProperty _readValue = default!;
-      private string _regexPattern = ".*";
       private Regex? _regexCompiled;
+      private string _regexPattern = ".*";
 
       public PropertyRule(MemberExpression navigationPropertyPath)
       {
@@ -407,7 +408,7 @@ public class ImportRule<TModel> where TModel : class
          var targetType = typeof(TProperty);
          if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
          {
-            targetType = targetType.GenericTypeArguments.First();
+            targetType = targetType.GenericTypeArguments[0];
          }
 
          return _converterType switch
@@ -449,7 +450,7 @@ public class ImportRule<TModel> where TModel : class
       {
          if (type.IsEnum)
          {
-            return (TProperty?)Enum.Parse(type, innerValue, ignoreCase: true);
+            return (TProperty?)Enum.Parse(type, innerValue, true);
          }
 
          if (type != typeof(bool))

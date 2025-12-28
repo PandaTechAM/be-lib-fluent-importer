@@ -1,20 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <PackageId>PandaTech.FluentImporter</PackageId>
         <Authors>PandaTech</Authors>
         <Copyright>MIT</Copyright>
         <PackageIcon>Logo.jpg</PackageIcon>
         <PackageReadmeFile>Readme.md</PackageReadmeFile>
-        <Version>3.0.9</Version>
+        <Version>4.0.0</Version>
         <Company>PandaTech</Company>
         <Title>Fluent Importer</Title>
         <PackageTags>Pandatech, libray, import, excel, csv, xlsx, fluent</PackageTags>
         <Description>Import data from XLSX or CSV</Description>
         <RepositoryUrl>https://github.com/PandaTechAM/be-lib-fluent-importer</RepositoryUrl>
-        <PackageReleaseNotes>More logging added for problems.</PackageReleaseNotes>
+        <PackageReleaseNotes>dotnet 10 upgrade</PackageReleaseNotes>
+
+        <!-- Never run analyzers as part of compilation (local, CI, dotnet build/test/publish) -->
+        <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+
+        <!-- Keep background/live analysis in the IDE -->
+        <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
+
+        <!-- Optional: ensure code-style analyzers don't run during build either -->
+        <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
     </PropertyGroup>
 
     <ItemGroup>
@@ -23,8 +32,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="ClosedXML" Version="0.105.0" />
-        <PackageReference Include="CsvHelper" Version="33.1.0" />
+        <PackageReference Include="ClosedXML" Version="0.105.0"/>
+        <PackageReference Include="CsvHelper" Version="33.1.0"/>
+        <PackageReference Include="Pandatech.Analyzers" Version="1.6.0"/>
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="10.17.0.131074">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
 </Project>
