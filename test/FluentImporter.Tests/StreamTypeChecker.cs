@@ -17,13 +17,15 @@ public static class StreamTypeChecker
          0xE1
       ];
 
-      byte[] buffer = new byte[8];
+      var buffer = new byte[8];
       stream.Read(buffer, 0, 8);
 
-      for (int i = 0; i < 8; i++)
+      for (var i = 0; i < 8; i++)
       {
          if (buffer[i] != signature[i])
+         {
             return false;
+         }
       }
 
       return true;
@@ -40,13 +42,15 @@ public static class StreamTypeChecker
          0x04
       ];
 
-      byte[] buffer = new byte[4];
+      var buffer = new byte[4];
       stream.Read(buffer, 0, 4);
 
-      for (int i = 0; i < 4; i++)
+      for (var i = 0; i < 4; i++)
       {
          if (buffer[i] != signature[i])
+         {
             return false;
+         }
       }
 
       return true;
