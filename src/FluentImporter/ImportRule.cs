@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -16,10 +13,20 @@ using FluentImporter.Services.Interfaces;
 
 namespace FluentImporter;
 
+/// <summary>
+/// Base class for defining import rules for a model type.
+/// </summary>
+/// <typeparam name="TModel">The model type to import data into.</typeparam>
 public class ImportRule<TModel> where TModel : class
 {
    private readonly List<IPropertyRule> _rules = [];
 
+   // Cache reflection lookups per property rule type
+   private static readonly ConcurrentDictionary<Type, MethodInfo> GetValueMethodCache = new();
+
+   /// <summary>
+   /// Define a rule for a specific property.
+   /// </summary>
    protected PropertyRule<TProperty> RuleFor<TProperty>(Expression<Func<TModel, TProperty>> navigationPropertyPath)
    {
       if (navigationPropertyPath.Body is not MemberExpression me)
@@ -32,11 +39,17 @@ public class ImportRule<TModel> where TModel : class
       return rule;
    }
 
+   /// <summary>
+   /// Get records from in-memory dictionary data.
+   /// </summary>
    public IEnumerable<TModel> GetRecords(IEnumerable<Dictionary<string, string>> data)
    {
       return data.Select(row => GetRecord(row));
    }
 
+   /// <summary>
+   /// Read and import data from a CSV stream.
+   /// </summary>
    public List<TModel> ReadCsv(Stream csvStream)
    {
       csvStream.Position = 0;
@@ -44,18 +57,27 @@ public class ImportRule<TModel> where TModel : class
       return ReadCsv(reader);
    }
 
+   /// <summary>
+   /// Read and import data from a CSV file.
+   /// </summary>
    public List<TModel> ReadCsv(string csvFilePath)
    {
       using var reader = new StreamReader(csvFilePath);
       return ReadCsv(reader);
    }
 
+   /// <summary>
+   /// Read and import data from an Excel file.
+   /// </summary>
    public List<TModel> ReadXlsx(string xlsxFilePath)
    {
       using var stream = File.Open(xlsxFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
       return ReadXlsx(stream);
    }
 
+   /// <summary>
+   /// Read and import data from an Excel stream.
+   /// </summary>
    public List<TModel> ReadXlsx(Stream stream)
    {
       using var workbook = new XLWorkbook(stream);
@@ -194,14 +216,20 @@ public class ImportRule<TModel> where TModel : class
 
    private static object? InvokeGetValue(IPropertyRule rule, string? raw, TModel model)
    {
-      var method = rule.GetType()
-                       .GetMethod("GetValue", [typeof(string), typeof(TModel)]);
-      if (method is null)
-      {
-         throw new MissingMethodException(rule.GetType()
-                                              .FullName,
-            "GetValue(string, TModel)");
-      }
+      var ruleType = rule.GetType();
+
+      // Cache method lookup to avoid repeated reflection
+      var method = GetValueMethodCache.GetOrAdd(ruleType,
+         t =>
+         {
+            var m = t.GetMethod("GetValue", [typeof(string), typeof(TModel)]);
+            if (m is null)
+            {
+               throw new MissingMethodException(t.FullName, "GetValue(string, TModel)");
+            }
+
+            return m;
+         });
 
       try
       {
@@ -278,7 +306,7 @@ public class ImportRule<TModel> where TModel : class
          return "null";
       }
 
-      return s.Length <= max ? s : s.Substring(0, max) + "…";
+      return s.Length <= max ? s : string.Concat(s.AsSpan(0, max), "…");
    }
 
    private static string GetInnermostMessage(Exception ex)
@@ -299,18 +327,21 @@ public class ImportRule<TModel> where TModel : class
       }
    }
 
+   /// <summary>
+   /// Property-level import rule configuration.
+   /// </summary>
    public class PropertyRule<TProperty> : IPropertyRule
    {
       private readonly string _propertyName;
       private string _columnName;
 
       private Func<string, TProperty> _converter =
-         x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty), CultureInfo.InvariantCulture);
+         x => (TProperty)System.Convert.ChangeType(x, typeof(TProperty), CultureInfo.InvariantCulture)!;
 
       private ConverterType _converterType = ConverterType.None;
 
       private Func<string, TModel, TProperty> _converterWithInstance =
-         (x, _) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty), CultureInfo.InvariantCulture);
+         (x, _) => (TProperty)System.Convert.ChangeType(x, typeof(TProperty), CultureInfo.InvariantCulture)!;
 
       private TProperty _defaultValue = default!;
       private bool _isValueRequired;
@@ -320,22 +351,31 @@ public class ImportRule<TModel> where TModel : class
       private Regex? _regexCompiled;
       private string _regexPattern = ".*";
 
-      public PropertyRule(MemberExpression navigationPropertyPath)
+      internal PropertyRule(MemberExpression navigationPropertyPath)
       {
          _propertyName = navigationPropertyPath.Member.Name;
          _columnName = _propertyName ?? throw new InvalidPropertyNameException("Invalid property name", string.Empty);
       }
 
+      /// <summary>
+      /// Get the property name.
+      /// </summary>
       public string PropertyName()
       {
          return _propertyName;
       }
 
+      /// <summary>
+      /// Get the column name to read from.
+      /// </summary>
       public string ColumnName()
       {
          return _columnName;
       }
 
+      /// <summary>
+      /// Read from a specific column name (different from property name).
+      /// </summary>
       public PropertyRule<TProperty> ReadFromColumn(string name)
       {
          _columnName = name;
@@ -343,6 +383,9 @@ public class ImportRule<TModel> where TModel : class
          return this;
       }
 
+      /// <summary>
+      /// Validate the value against a regex pattern.
+      /// </summary>
       public PropertyRule<TProperty> Validate(string regex)
       {
          _regexPattern = regex;
@@ -353,6 +396,9 @@ public class ImportRule<TModel> where TModel : class
          return this;
       }
 
+      /// <summary>
+      /// Use a custom converter function.
+      /// </summary>
       public PropertyRule<TProperty> Convert(Func<string, TProperty> func)
       {
          _converter = func;
@@ -360,6 +406,9 @@ public class ImportRule<TModel> where TModel : class
          return this;
       }
 
+      /// <summary>
+      /// Use a custom converter function with access to the model instance.
+      /// </summary>
       public PropertyRule<TProperty> Convert(Func<string, TModel, TProperty> func)
       {
          _converterWithInstance = func;
@@ -367,6 +416,9 @@ public class ImportRule<TModel> where TModel : class
          return this;
       }
 
+      /// <summary>
+      /// Get the converted value for this property.
+      /// </summary>
       public TProperty GetValue(string? value, TModel model)
       {
          if (_isValueRequired && string.IsNullOrWhiteSpace(value))
@@ -422,24 +474,36 @@ public class ImportRule<TModel> where TModel : class
          };
       }
 
+      /// <summary>
+      /// Set a constant value for this property.
+      /// </summary>
       public void WriteValue(TProperty value)
       {
          _readFromType = ReadFromType.Value;
          _readValue = value;
       }
 
+      /// <summary>
+      /// Set a default value if the cell is null or empty.
+      /// </summary>
       public PropertyRule<TProperty> Default(TProperty value)
       {
          _defaultValue = value;
          return this;
       }
 
+      /// <summary>
+      /// Require that this property has a non-empty value.
+      /// </summary>
       public PropertyRule<TProperty> NotEmpty()
       {
          _isValueRequired = true;
          return this;
       }
 
+      /// <summary>
+      /// Compute the value from the model instance.
+      /// </summary>
       public void ReadFromModel(Func<TModel, TProperty> func)
       {
          _readFromType = ReadFromType.Function;
