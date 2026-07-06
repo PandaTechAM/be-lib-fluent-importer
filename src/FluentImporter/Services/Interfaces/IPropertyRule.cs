@@ -2,6 +2,6 @@
 
 internal interface IPropertyRule
 {
-   string PropertyName();
-   string ColumnName();
+    string PropertyName();
+    string ColumnName();
 }
