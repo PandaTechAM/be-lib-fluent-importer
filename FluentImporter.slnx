@@ -1,16 +1,16 @@
 <Solution>
   <Folder Name="/Solution Items/">
-    <File Path=".editorconfig" />
-    <File Path=".github/workflows/main.yml" />
-    <File Path=".gitignore" />
-    <File Path="global.json" />
-    <File Path="Readme.md" />
+    <File Path=".editorconfig"/>
+    <File Path=".github/workflows/main.yml"/>
+    <File Path=".gitignore"/>
+    <File Path="global.json"/>
+    <File Path="Readme.md"/>
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/FluentImporter/FluentImporter.csproj" />
+    <Project Path="src/FluentImporter/FluentImporter.csproj"/>
   </Folder>
   <Folder Name="/test/">
-    <Project Path="test/FluentImporter.Demo/FluentImporter.Demo.csproj" />
-    <Project Path="test/FluentImporter.Tests/FluentImporter.Tests.csproj" />
+    <Project Path="test/FluentImporter.Demo/FluentImporter.Demo.csproj"/>
+    <Project Path="test/FluentImporter.Tests/FluentImporter.Tests.csproj"/>
   </Folder>
 </Solution>

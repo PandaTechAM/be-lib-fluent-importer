@@ -34,25 +34,25 @@ public class FileDataImportRule : ImportRule<FileData>
     {
         RuleFor(x => x.Name)
             .NotEmpty();
-        
+
         RuleFor(x => x.Description)
             .ReadFromColumn("Description text")
             .Default("No Description");
-        
+
         RuleFor(x => x.Date)
             .ReadFromColumn("Date")
             .Convert(DateTime.Parse);
-        
+
         RuleFor(x => x.Comment)
             .ReadFromColumn("Comment");
-        
+
         RuleFor(x => x.Id)
             .ReadFromColumn("Id")
             .Convert(s => long.Parse(s));
-        
+
         RuleFor(x => x.CreatedAt)
             .WriteValue(DateTime.UtcNow);
-        
+
         RuleFor(x => x.CreatedBy)
             .ReadFromModel(x => x.CreatedBy + " - Modified");
     }
@@ -90,16 +90,16 @@ var data = importRule.GetRecords(dict);
 
 ### Property Rules
 
-| Method | Description |
-|--------|-------------|
-| `ReadFromColumn(string)` | Map to a different column name |
-| `NotEmpty()` | Require non-empty value |
-| `Default(T)` | Set default value if null/empty |
-| `Convert(Func<string, T>)` | Custom converter function |
+| Method                             | Description                             |
+|------------------------------------|-----------------------------------------|
+| `ReadFromColumn(string)`           | Map to a different column name          |
+| `NotEmpty()`                       | Require non-empty value                 |
+| `Default(T)`                       | Set default value if null/empty         |
+| `Convert(Func<string, T>)`         | Custom converter function               |
 | `Convert(Func<string, TModel, T>)` | Converter with access to model instance |
-| `Validate(string)` | Regex validation pattern |
-| `WriteValue(T)` | Set a constant value |
-| `ReadFromModel(Func<TModel, T>)` | Compute value from model |
+| `Validate(string)`                 | Regex validation pattern                |
+| `WriteValue(T)`                    | Set a constant value                    |
+| `ReadFromModel(Func<TModel, T>)`   | Compute value from model                |
 
 ### Supported Types
 
@@ -112,6 +112,7 @@ var data = importRule.GetRecords(dict);
 ### Boolean Parsing
 
 The library automatically handles multiple boolean representations:
+
 - `true`/`false`
 - `1`/`0`
 - `yes`/`no`
@@ -126,6 +127,7 @@ All import exceptions inherit from `ImportException`:
 - `InvalidPropertyNameException` - Property doesn't exist on model
 
 Each exception includes:
+
 - Descriptive error message
 - Row number (when applicable)
 - Column name
