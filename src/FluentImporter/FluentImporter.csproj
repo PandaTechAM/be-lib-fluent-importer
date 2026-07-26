@@ -21,8 +21,28 @@
     <PackageIcon>Logo.jpg</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
-    <Version>5.0.1</Version>
-    <PackageReleaseNotes>Tooling modernization: xUnit v3 test migration, dependency updates, standardized editorconfig/gitignore/global.json.</PackageReleaseNotes>
+    <Version>6.0.0</Version>
+    <PackageReleaseNotes>Template generation and reader hardening.
+
+Added: ImportRule&lt;T&gt;.Columns exposes ordered column metadata via the new public IImportColumn; new declarative
+rule methods Describe, WithExample, WithExpectedFormat, WithEnumSource, WithAllowedValues, WithAliases;
+ImportRule&lt;T&gt;.BuildTemplate generates a two-sheet xlsx (fillable data sheet first, legend second) with styled and
+frozen headers, sample rows, localizable legend captions and in-cell dropdowns sourced from the legend;
+ReadXlsx(stream, sheetName) selects a worksheet by name; TryReadXlsx/TryReadCsv aggregate every cell error instead
+of throwing on the first; new MissingColumnsException, DuplicateColumnException and SheetNotFoundException;
+InvalidCellValueException now carries a structured ImportError.
+
+Fixed: header cells are read positionally, so a blank or leading-blank header cell no longer shifts every column
+silently; cells are stringified culture-invariantly, so decimals and dates no longer break under a non-invariant
+server culture; required columns are validated up front instead of surfacing as a misleading row-2 cell error;
+fully blank rows are skipped; enum conversion rejects undefined numeric values; duplicate headers and unsettable
+properties throw typed ImportExceptions instead of raw ArgumentException/InvalidOperationException; constant and
+computed columns no longer require a header to be present; header matching collapses inner whitespace runs.
+
+Breaking: IPropertyRule (internal) is replaced by the public IImportColumn; the internal ReadFromType enum is
+replaced by the public ImportValueSource; WriteValue and ReadFromModel now return the rule for chaining;
+RuleFor throws immediately when the property does not exist on the model; an optional mapped column may now be
+absent from the file instead of failing every row.</PackageReleaseNotes>
 
     <!-- Build quality -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
