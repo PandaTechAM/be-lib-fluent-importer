@@ -56,6 +56,7 @@ public class ImportRule<TModel> where TModel : class
     /// </summary>
     /// <param name="examples">
     ///     Sample rows to render. When null or empty, one row is synthesized from each column's <c>Example</c>.
+    ///     A column declaring <c>ExampleText</c> renders that text either way.
     /// </param>
     /// <param name="options">Sheet names, captions and the enum-label resolver. Defaults are English.</param>
     public byte[] BuildTemplate(IEnumerable<TModel>? examples = null, ImportTemplateOptions? options = null)
@@ -76,12 +77,12 @@ public class ImportRule<TModel> where TModel : class
 
         foreach (var example in examples ?? [])
         {
-            rows.Add(templateColumns.Select(c => c.Property.GetValue(example)).ToArray());
+            rows.Add(templateColumns.Select(c => c.ExampleText ?? c.Property.GetValue(example)).ToArray());
         }
 
         if (rows.Count == 0)
         {
-            rows.Add(templateColumns.Select(c => c.Example).ToArray());
+            rows.Add(templateColumns.Select(c => c.ExampleText ?? c.Example).ToArray());
         }
 
         return ImportTemplateBuilder.Build(templateColumns, rows, options);
@@ -626,6 +627,7 @@ public class ImportRule<TModel> where TModel : class
         private TProperty _defaultValue = default!;
         private string? _description;
         private Type? _enumSource;
+        private string? _exampleText;
         private string? _expectedFormat;
         private bool _isValueRequired;
         private Regex? _regexCompiled;
@@ -676,6 +678,9 @@ public class ImportRule<TModel> where TModel : class
 
         /// <inheritdoc />
         public object? Example { get; private set; }
+
+        /// <inheritdoc />
+        public string? ExampleText => _exampleText;
 
         /// <inheritdoc />
         public Type? EnumSource => _enumSource;
@@ -824,6 +829,19 @@ public class ImportRule<TModel> where TModel : class
         public PropertyRule<TProperty> WithExample(TProperty value)
         {
             Example = value;
+            return this;
+        }
+
+        /// <summary>
+        ///     Literal text to write into this column's sample cells, used verbatim. Declare it instead of
+        ///     <see cref="WithExample" /> when the destination type cannot be rendered as the text the parser expects:
+        ///     an example typed to a collection is written as its type name, which the rule then rejects. It wins over
+        ///     <see cref="WithExample" /> and over the value read from a supplied example model, so a column that
+        ///     declares it shows the same text on every sample row.
+        /// </summary>
+        public PropertyRule<TProperty> WithExampleText(string text)
+        {
+            _exampleText = text;
             return this;
         }
 
