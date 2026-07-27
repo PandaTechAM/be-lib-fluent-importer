@@ -129,6 +129,11 @@ public class ProductImportRule : ImportRule<ProductImportModel>
         RuleFor(x => x.ReleasedOn).ReadFromColumn("Released On")
             .Convert(ParseDayFirst)
             .WithExpectedFormat("dd/MM/yyyy");      // a converter is opaque; declare what it expects
+
+        RuleFor(x => x.TagIds).ReadFromColumn("Tag Ids").NotEmpty()
+            .Convert(x => x.Split(';').Select(long.Parse).ToList())
+            .WithExpectedFormat("1;25;88")
+            .WithExampleText("1;25;88");            // WithExample is typed List<long>, which cannot be written
     }
 }
 
@@ -171,6 +176,7 @@ header row is the one thing never localized — it is the parsing contract, so i
 | `ReadFromModel(Func<TModel, T>)`   | Compute value from model; never read from the file, never templated  |
 | `Describe(string)`                 | Legend description and header note                                   |
 | `WithExample(T)`                   | Example value for generated sample rows                              |
+| `WithExampleText(string)`          | Literal sample-cell text; use when `T` cannot render to what parses  |
 | `WithExpectedFormat(string)`       | Textual format a custom converter expects, e.g. `dd/MM/yyyy`         |
 | `WithEnumSource<TEnum>()`          | Declare the enum an `int` column carries; drives legend and dropdown |
 | `WithAllowedValues(...)`           | Declare a closed value set for a non-enum column                     |

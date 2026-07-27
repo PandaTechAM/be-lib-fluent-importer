@@ -46,6 +46,14 @@ public interface IImportColumn
     object? Example { get; }
 
     /// <summary>
+    ///     Literal sample-cell text, from <c>ExampleText</c>. Declare it when the destination type cannot be rendered
+    ///     as the text the parser expects — a collection reached through a splitting converter is the usual case,
+    ///     since an example typed to the property would be written as its type name. It wins over
+    ///     <see cref="Example" /> and over the value read from a supplied example model.
+    /// </summary>
+    string? ExampleText { get; }
+
+    /// <summary>
     ///     The enum this column carries, from <c>EnumSource</c>. Set this on <c>int</c> columns that hold enum values:
     ///     the property type alone cannot reveal it.
     /// </summary>

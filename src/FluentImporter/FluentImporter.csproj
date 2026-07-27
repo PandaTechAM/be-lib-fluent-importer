@@ -21,8 +21,21 @@
     <PackageIcon>Logo.jpg</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
-    <Version>6.0.0</Version>
-    <PackageReleaseNotes>Template generation and reader hardening.
+    <Version>6.1.0</Version>
+    <PackageReleaseNotes>Literal sample-cell text.
+
+Added: WithExampleText declares the exact text a generated sample cell should carry, exposed as
+IImportColumn.ExampleText. WithExample is typed to the destination property, so a column converted from text into a
+collection could not carry a usable example: the value was rendered through Convert.ToString as its type name, and
+marking such a column NotEmpty made the generated template fail its own parse on the blank cell. ExampleText wins
+over WithExample and over the value read from a supplied example model.
+
+Note: IImportColumn gained a member. It is a read-only metadata view produced by ImportRule&lt;T&gt;.Columns and is
+not an extension point, so this affects only code that implements the interface itself.
+
+Previous release notes follow.
+
+6.0.0 — Template generation and reader hardening.
 
 Added: ImportRule&lt;T&gt;.Columns exposes ordered column metadata via the new public IImportColumn; new declarative
 rule methods Describe, WithExample, WithExpectedFormat, WithEnumSource, WithAllowedValues, WithAliases;
