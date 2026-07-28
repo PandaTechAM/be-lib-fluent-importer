@@ -21,7 +21,7 @@
     <PackageIcon>Logo.jpg</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
-    <Version>6.1.0</Version>
+    <Version>6.2.0</Version>
     <PackageReleaseNotes>Literal sample-cell text.
 
 Added: WithExampleText declares the exact text a generated sample cell should carry, exposed as

@@ -150,43 +150,15 @@ internal static class ImportTemplateBuilder
         sheet.Cell(1, 1).Style.Font.FontSize = 14;
         sheet.Range(1, 1, 1, LegendColumnTableColumns).Merge();
 
-        var row = 3;
-        sheet.Cell(row, 1).Value = texts.ColumnsTitle;
-        sheet.Cell(row, 1).Style.Font.Bold = true;
-        row++;
-
-        string[] headers =
-        [
-            texts.ColumnHeader, texts.RequiredHeader, texts.TypeHeader, texts.FormatHeader, texts.DescriptionHeader
-        ];
-
-        for (var i = 0; i < headers.Length; i++)
-        {
-            var cell = sheet.Cell(row, i + 1);
-            cell.Value = headers[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = SectionFill;
-        }
-
-        row++;
-
-        foreach (var column in columns)
-        {
-            sheet.Cell(row, 1).Value = column.ColumnName;
-            sheet.Cell(row, 2).Value = column.IsRequired ? texts.RequiredYes : texts.RequiredNo;
-            sheet.Cell(row, 3).Value = ResolveTypeName(column, valueSets, texts);
-            sheet.Cell(row, 4).Value = column.ExpectedFormat ?? string.Empty;
-            sheet.Cell(row, 5).Value = ResolveDescription(column, options) ?? string.Empty;
-            sheet.Cell(row, 5).Style.Alignment.WrapText = true;
-            row++;
-        }
-
         var dropdownRangeByProperty = new Dictionary<string, IXLRange>(StringComparer.Ordinal);
         var columnsWithValues = columns.Where(c => valueSets.ContainsKey(c.PropertyName)).ToList();
 
+        // Allowed values first: the legend is opened to look up "what may I type here?" far more often than to read
+        // the column reference, so the answer should not sit below a full-page table.
+        var row = 3;
+
         if (columnsWithValues.Count > 0)
         {
-            row += 2;
             sheet.Cell(row, 1).Value = texts.AllowedValuesTitle;
             sheet.Cell(row, 1).Style.Font.Bold = true;
             row += 2;
@@ -228,6 +200,38 @@ internal static class ImportTemplateBuilder
 
                 row++;
             }
+
+            row++;
+        }
+
+        sheet.Cell(row, 1).Value = texts.ColumnsTitle;
+        sheet.Cell(row, 1).Style.Font.Bold = true;
+        row++;
+
+        string[] headers =
+        [
+            texts.ColumnHeader, texts.RequiredHeader, texts.TypeHeader, texts.FormatHeader, texts.DescriptionHeader
+        ];
+
+        for (var i = 0; i < headers.Length; i++)
+        {
+            var cell = sheet.Cell(row, i + 1);
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = SectionFill;
+        }
+
+        row++;
+
+        foreach (var column in columns)
+        {
+            sheet.Cell(row, 1).Value = column.ColumnName;
+            sheet.Cell(row, 2).Value = column.IsRequired ? texts.RequiredYes : texts.RequiredNo;
+            sheet.Cell(row, 3).Value = ResolveTypeName(column, valueSets, texts);
+            sheet.Cell(row, 4).Value = column.ExpectedFormat ?? string.Empty;
+            sheet.Cell(row, 5).Value = ResolveDescription(column, options) ?? string.Empty;
+            sheet.Cell(row, 5).Style.Alignment.WrapText = true;
+            row++;
         }
 
         sheet.Column(1).AdjustToContents(10d, 32d);
