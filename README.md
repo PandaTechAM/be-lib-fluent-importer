@@ -110,9 +110,14 @@ An import rule already knows every column, so it can emit the file the operator 
 from the rule is the only way to guarantee the download and the parser cannot drift apart.
 
 The result has two sheets: the **fillable data sheet first** (so it is the tab Excel opens on) and a **legend
-second**. Enum columns get an in-cell dropdown sourced from the legend, and the dropdown inserts `"0 - Label"`
-which the reader normalizes back to `0` — so the operator picks something meaningful while the column still
-imports as an integer.
+second**. The legend leads with the allowed values for every closed-set column, then the column reference table —
+the sheet is opened to answer "what may I type here?" far more often than to read the column list. Enum columns
+get an in-cell dropdown sourced from the legend, and the dropdown inserts `"0 - Label"` which the reader
+normalizes back to `0` — so the operator picks something meaningful while the column still imports as an integer.
+
+A label that would only repeat its value is dropped, so a value set whose values are already words renders `Yes`
+rather than `Yes - Yes`. The reader accepts the bare value, the `"value - label"` form, and — for a column with
+declared `WithAllowedValues` — the label on its own.
 
 ```csharp
 public class ProductImportRule : ImportRule<ProductImportModel>
